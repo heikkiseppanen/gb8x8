@@ -6,16 +6,16 @@
 #define GLAD_GL_IMPLEMENTATION
 #include "glad/gl.h"
 
-static u32 gl_create_shader_module(const char* source, GLenum type);
+static u32 gl_create_shader_module(char const* source, GLenum type);
 
 static void gl_debug_callback(
-    GLenum source,
-    GLenum type,
-    GLuint id,
-    GLenum severity,
-    GLsizei length,
-    const GLchar* message,
-    const void* userParam);
+    GLenum       source,
+    GLenum       type,
+    GLuint       id,
+    GLenum       severity,
+    GLsizei      length,
+    GLchar const *message,
+    void const   *userParam);
 
 i32 graphics_init() {
     int version = gladLoadGL(glfwGetProcAddress);
@@ -32,7 +32,7 @@ i32 graphics_init() {
     GLFWwindow* context = glfwGetCurrentContext();
     if (!context) {
         printf("Failed to initialize graphics backend, no GLFW context set\n");
-        return -1;
+        return 0;
     }
     
     i32 width, height;
@@ -44,10 +44,10 @@ i32 graphics_init() {
 
     printf("OpenGL %d.%d initialized\n", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version)); 
 
-    return 0;
+    return 1;
 }
 
-u32 create_mesh_shader(const char* vertex_source, const char* fragment_source) {
+u32 create_shader(const char* vertex_source, const char* fragment_source) {
     u32 shader = 0;
     u32 vert_module = 0;
     u32 frag_module = 0;
@@ -100,8 +100,11 @@ u32 create_mesh_shader(const char* vertex_source, const char* fragment_source) {
     return shader;
 }
 
-u32 gl_create_shader_module(const char* source, GLenum type)
-{
+void destroy_shader(shader_id id) {
+    glDeleteProgram(id);
+}
+
+u32 gl_create_shader_module(const char* source, GLenum type) {
     u32 id = glCreateShader(type);
 
     if (!id) {
@@ -130,14 +133,14 @@ u32 gl_create_shader_module(const char* source, GLenum type)
 }
 
 static void gl_debug_callback(
-    GLenum source,
-    GLenum type,
-    GLuint id,
-    GLenum severity,
-    GLsizei length,
-    const GLchar* message,
-    const void* userParam)
-{
+    GLenum       source,
+    GLenum       type,
+    GLuint       id,
+    GLenum       severity,
+    GLsizei      length,
+    GLchar const *message,
+    void const   *userParam
+){
     (void)length;
     (void)userParam;
 

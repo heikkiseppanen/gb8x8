@@ -1,19 +1,18 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include "gb8x8.h"
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 
 #include "graphics.h"
 
-void glfw_error_callback(int err, const char* msg) {
+void glfw_error_callback(int err, char const* msg) {
     printf("GLFW error: %x %s\n", err, msg);
 }
 
 int main() {
     GLFWwindow *window   = NULL;
     GLFWmonitor *monitor = NULL;
-    const GLFWvidmode *video_mode = NULL;
+    GLFWvidmode const *video_mode = NULL;
 
     glfwSetErrorCallback((GLFWerrorfun)glfw_error_callback);
 
@@ -21,12 +20,11 @@ int main() {
         goto error;
     }
 
-    glfwWindowHint(GLFW_RESIZABLE,    GLFW_FALSE);
-    glfwWindowHint(GLFW_MAXIMIZED,    GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
 
     monitor    = glfwGetPrimaryMonitor();
     video_mode = glfwGetVideoMode(monitor);
-
     if (video_mode) {
         glfwWindowHint(GLFW_REFRESH_RATE, video_mode->refreshRate);
     }
@@ -38,7 +36,7 @@ int main() {
 
     glfwMakeContextCurrent(window);
 
-    if (graphics_init() != 0) {
+    if (!graphics_init()) {
         goto error;
     }
 
@@ -56,5 +54,5 @@ int main() {
 error:
     glfwTerminate();
 
-    return EXIT_SUCCESS;
+    return 0;
 }

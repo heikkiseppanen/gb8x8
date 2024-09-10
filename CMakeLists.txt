@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.30)
 
 project( 
     gb8x8
@@ -16,14 +16,25 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${SRC_DIR}/graphics.c
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${SRC_DIR})
+target_include_directories(${PROJECT_NAME}
+    PRIVATE ${SRC_DIR}
+)
 
 add_subdirectory(${LIB_DIR})
 
-target_compile_options(
-    ${PROJECT_NAME}
+target_compile_features(${PROJECT_NAME}
     PUBLIC
-        -std=c17 -Wall -Werror -Wextra
+        c_std_23
+)
+
+target_compile_definitions(${PROJECT_NAME}
+    PUBLIC
+        $<$<CONFIG:Debug>: GB_DEBUG>
+)
+
+target_compile_options(${PROJECT_NAME}
+    PUBLIC
+        -Wall -Werror -Wextra
         $<$<CONFIG:Release>: -O3>
         $<$<CONFIG:Debug>: -g -fno-omit-frame-pointer >
 )
