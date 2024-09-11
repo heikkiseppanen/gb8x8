@@ -27,7 +27,7 @@ i32 graphics_init() {
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_FRAMEBUFFER_SRGB);
 
-    glDebugMessageCallback(gl_debug_callback, NULL);
+    // glDebugMessageCallback(gl_debug_callback, NULL);
 
     GLFWwindow* context = glfwGetCurrentContext();
     if (!context) {
