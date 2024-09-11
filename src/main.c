@@ -36,7 +36,7 @@ int main() {
 
     glfwMakeContextCurrent(window);
 
-    if (!graphics_init()) {
+    if (!graphics_init(window)) {
         goto error;
     }
 

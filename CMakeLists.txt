@@ -24,7 +24,7 @@ add_subdirectory(${LIB_DIR})
 
 target_compile_features(${PROJECT_NAME}
     PUBLIC
-        c_std_23
+        c_std_17
 )
 
 target_compile_definitions(${PROJECT_NAME}
@@ -34,9 +34,9 @@ target_compile_definitions(${PROJECT_NAME}
 
 target_compile_options(${PROJECT_NAME}
     PUBLIC
-        -Wall -Werror -Wextra
-        $<$<CONFIG:Release>: -O3>
         $<$<CONFIG:Debug>: -g -fno-omit-frame-pointer >
+        $<$<CONFIG:Release>: -O3>
+        -Wall -Werror -Wextra
 )
 
 target_link_options(

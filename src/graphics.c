@@ -17,24 +17,24 @@ static void gl_debug_callback(
     GLchar const *message,
     void const   *userParam);
 
-i32 graphics_init() {
-    int version = gladLoadGL(glfwGetProcAddress);
+i32 graphics_init(GLFWwindow* context) {
+    GB_ASSERT(context != NULL, "Invalid OpenGL context!");
+    
+    const int version = gladLoadGL(glfwGetProcAddress);
     if (!version) {
         printf("Failed to initialize OpenGL context\n");
         return 0;
     }
 
+    // TODO Lock down OpenGL version
+    if (version >= GLAD_MAKE_VERSION(4, 3)) {
+        glDebugMessageCallback(gl_debug_callback, NULL);
+    }
+
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_FRAMEBUFFER_SRGB);
 
-    glDebugMessageCallback(gl_debug_callback, NULL);
 
-    GLFWwindow* context = glfwGetCurrentContext();
-    if (!context) {
-        printf("Failed to initialize graphics backend, no GLFW context set\n");
-        return 0;
-    }
-    
     i32 width, height;
     glfwGetWindowSize(context, &width, &height);
 
@@ -47,8 +47,8 @@ i32 graphics_init() {
     return 1;
 }
 
-u32 create_shader(const char* vertex_source, const char* fragment_source) {
-    u32 shader = 0;
+shader_id create_shader(const char* vertex_source, const char* fragment_source) {
+    shader_id shader = 0;
     u32 vert_module = 0;
     u32 frag_module = 0;
 
@@ -59,7 +59,7 @@ u32 create_shader(const char* vertex_source, const char* fragment_source) {
     }
 
     vert_module = gl_create_shader_module(vertex_source, GL_VERTEX_SHADER);
-    frag_module = gl_create_shader_module(vertex_source, GL_VERTEX_SHADER);
+    frag_module = gl_create_shader_module(vertex_source, GL_FRAGMENT_SHADER);
 
     if (!vert_module || !frag_module) {
         glDeleteShader(vert_module);
@@ -105,31 +105,33 @@ void destroy_shader(shader_id id) {
 }
 
 u32 gl_create_shader_module(const char* source, GLenum type) {
-    u32 id = glCreateShader(type);
+    u32 module = glCreateShader(type);
+    i32 compilation_success = 0;
 
-    if (!id) {
-        return id;
+    if (!module) {
+        return module;
     }
 
-    glShaderSource(id, 1, &source, NULL);
-    glCompileShader(id);
+    glShaderSource(module, 1, &source, NULL);
+    glCompileShader(module);
 
-    int compilation_success;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &compilation_success);
+    glGetShaderiv(module, GL_COMPILE_STATUS, &compilation_success);
 
     if (!compilation_success) {
         GLsizei length;
         GLchar message[256];
-        glGetShaderInfoLog(id, 256, &length, message);
+        glGetShaderInfoLog(module, 256, &length, message);
         gl_debug_callback(
             GL_DEBUG_SOURCE_SHADER_COMPILER,
             GL_DEBUG_TYPE_ERROR,
-            id,
+            module,
             GL_DEBUG_SEVERITY_HIGH,
             length, message, NULL);
+        glDeleteShader(module);
+        module = 0;
     }
 
-    return id;
+    return module;
 }
 
 static void gl_debug_callback(
@@ -178,5 +180,5 @@ static void gl_debug_callback(
         default:                                type_str = "UNKNOWN";      break;
     }
 
-    printf("GL_%s_%s_%s ID: %d Info: %.*s", severity_str, src_str, type_str, id, length, message);
+    GB_ERROR("GL_%s_%s_%s ID: %d Info: %.*s", severity_str, src_str, type_str, id, length, message);
 }
