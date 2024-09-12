@@ -4,18 +4,18 @@
 
 typedef union {
     uint16_t r;
-    struct hl {
+    struct {
         uint8_t hi;
         uint8_t lo;
-    };
-} reg;
+    } hl;
+} Reg;
 
 typedef struct {
-    reg AF;
-    reg BC;
-    reg DE;
-    reg HL;
-    reg SP;
-    reg PC;
+    Reg AF;
+    Reg BC;
+    Reg DE;
+    Reg HL;
+    Reg SP;
+    Reg PC;
 
-} registers;
+} Registers;

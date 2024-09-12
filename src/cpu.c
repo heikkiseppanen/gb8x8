@@ -6,7 +6,7 @@
 
 void cpu() {
     // uint8_t buffer[10] = {''};
-    uint8_t interruptCounter = 100;
+    uint8_t interrupt_counter = 100;
     _Bool interrupt = 0;
 
     while (1) {
@@ -14,8 +14,8 @@ void cpu() {
         #ifdef DEBUGGER
         debugger();
         #endif
-        if (interruptCounter == 0) {
-            interruptCounter = 100;
+        if (interrupt_counter == 0) {
+            interrupt_counter = 100;
             //check interrupts
             if (interrupt)
                 break;
