@@ -37,15 +37,23 @@ typedef u8 LCDControl;
 
 typedef enum {
     LCD_STATUS_NULL         = 0,        //
-    LCD_STATUS_PPU_MODE     = 0x03,     // OFF         ON        -> DIFFERENT FOR CGB
-    LCD_STATUS_OBJ_ENABLE   = 1u << 1u, // OFF         ON
-    LCD_STATUS_OBJ_SIZE     = 1u << 2u, // 8x8         8x16
-    LCD_STATUS_BG_TILE_MAP  = 1u << 3u, // 9800-9BFF   9C00-9FFF
-    LCD_STATUS_BG_WIN_TILES = 1u << 4u, // 8800-97FF   8000-8FFF
-    LCD_STATUS_WIN_ENABLE   = 1u << 5u, // OFF         ON
-    LCD_STATUS_WIN_TILE_MAP = 1u << 6u, // 9800-0BFF   9C00-9FFF
+
+    LCD_STATUS_PPU_MODE_MASK = 0x03,
+
+    LCD_STATUS_COINCIDENCE         = 1u << 2u, // OFF         ON
+    LCD_STATUS_MODE_0_INTERRUPT    = 1u << 3u, // 8x8         8x16
+    LCD_STATUS_MODE_1_INTERRUPT    = 1u << 4u, // 9800-9BFF   9C00-9FFF
+    LCD_STATUS_MODE_2_INTERRUPT    = 1u << 5u, // 8800-97FF   8000-8FFF
+    LCD_STATUS_LYC_EQ_LY_INTERRUPT = 1u << 6u, // 8800-97FF   8000-8FFF
 } LCDStatusBits;
 typedef u8 LCDStatus;
+
+typedef enum {
+    PPU_MODE_H_BLANK = 0,
+    PPU_MODE_V_BLANK,
+    PPU_MODE_OAM_SCAN,
+    PPU_MODE_DRAWING,
+} PPUMode;
 
 typedef enum {
     OBJ_ATTR_NULL             = 0,
@@ -65,8 +73,10 @@ typedef struct {
     LCDStatus  stat; // LCD Status
     u8 scy;  // Viewport Y
     u8 scx;  // Viewport X
-    u8 ly;   // LCD Y
+    u8 ly;   // LCD Y, read-only
     u8 lyc;  // LY compare?
+
+    u8 lx;   // Internal scanline counter
 } PPU;
 
 typedef struct {
@@ -76,3 +86,5 @@ typedef struct {
     ObjectAttributeFlagBits flags;
 } ObjectAttribute;
 
+
+void ppu_cycle(PPU *ppu);
