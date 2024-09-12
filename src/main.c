@@ -5,7 +5,9 @@
 
 #include "graphics.h"
 
-void glfw_error_callback(int err, char const* msg) {
+#include "ppu.h"
+
+void glfw_error_callback(int err, const char* msg) {
     printf("GLFW error: %x %s\n", err, msg);
 }
 
@@ -40,6 +42,10 @@ int main() {
         goto error;
     }
 
+    ppu picture_processing_unit = {
+        .stat = PPU_MODE_DRAWING & LCD_STATUS_PPU_MODE_MASK
+    };
+
     // Application loop
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -47,6 +53,8 @@ int main() {
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
+
+        ppu_cycle(&picture_processing_unit);
 
         glfwSwapBuffers(window);
     }

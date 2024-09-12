@@ -1,8 +1,18 @@
-#include "lcd.h"
+#include "ppu.h"
 
-int main()
-{
-    GB_INFO("%lu", sizeof(ObjectAttribute));
+// static u8 vram[MEM_VRAM_END - MEM_VRAM_END] = {};
+
+void ppu_cycle(ppu *ppu) {
+    switch (ppu->stat & LCD_STATUS_PPU_MODE_MASK) {
+        case PPU_MODE_H_BLANK: {
+        }
+        case PPU_MODE_V_BLANK: {
+        }
+        case PPU_MODE_OAM_SCAN: {
+        }
+        case PPU_MODE_DRAWING: {
+        }
+    }
 }
 
 //}

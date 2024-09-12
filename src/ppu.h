@@ -32,8 +32,8 @@ typedef enum {
     LCD_CONTROL_WIN_ENABLE      = 1u << 5u, // OFF         ON
     LCD_CONTROL_WIN_TILE_MAP    = 1u << 6u, // 9800-0BFF   9C00-9FFF
     LCD_CONTROL_LCD_PPU_ENABLE  = 1u << 7u, // OFF         ON
-} LCDControlBits;
-typedef u8 LCDControl;
+} lcd_control_bits;
+typedef u8 lcd_control;
 
 typedef enum {
     LCD_STATUS_NULL         = 0,        //
@@ -45,46 +45,47 @@ typedef enum {
     LCD_STATUS_MODE_1_INTERRUPT    = 1u << 4u, // 9800-9BFF   9C00-9FFF
     LCD_STATUS_MODE_2_INTERRUPT    = 1u << 5u, // 8800-97FF   8000-8FFF
     LCD_STATUS_LYC_EQ_LY_INTERRUPT = 1u << 6u, // 8800-97FF   8000-8FFF
-} LCDStatusBits;
-typedef u8 LCDStatus;
+} lcd_status_bits;
+typedef u8 lcd_status;
+
+typedef enum {
+    OBJ_ATTR_NULL             = 0,
+
+    OBJ_ATTR_CGB_PALETTE_MASK = 0x07,     // 0-7 value formed by bits 0-2
+
+    OBJ_ATTR_CGB_VRAM_BANK    = 1u << 3u, // VRAM0 or VRAM1
+    OBJ_ATTR_DMG_PALETTE      = 1u << 4u, // OBP0 or OBP1
+    OBJ_ATTR_X_FLIP           = 1u << 5u, // 1 = Vertical mirroring
+    OBJ_ATTR_Y_FLIP           = 1u << 6u, // 1 = Horizontal mirroring
+    OBJ_ATTR_PRIORITY         = 1u << 7u, // 1 = BG and Window colors 1-3 drawn over OBJ
+} object_attribute_flag_bits;
+typedef u8 object_attribute_flags;
 
 typedef enum {
     PPU_MODE_H_BLANK = 0,
     PPU_MODE_V_BLANK,
     PPU_MODE_OAM_SCAN,
     PPU_MODE_DRAWING,
-} PPUMode;
-
-typedef enum {
-    OBJ_ATTR_NULL             = 0,
-
-    OBJ_ATTR_CGB_PALETTE_MASK = 0x07,     // 0-7 value formed by bits 0-2
-                                          //
-    OBJ_ATTR_CGB_VRAM_BANK    = 1u << 3u, // VRAM0 or VRAM1
-    OBJ_ATTR_DMG_PALETTE      = 1u << 4u, // OBP0 or OBP1
-    OBJ_ATTR_X_FLIP           = 1u << 5u, // 1 = Vertical mirroring
-    OBJ_ATTR_Y_FLIP           = 1u << 6u, // 1 = Horizontal mirroring
-    OBJ_ATTR_PRIORITY         = 1u << 7u, // 1 = BG and Window colors 1-3 drawn over OBJ
-} ObjectAttributeFlagBits;
-typedef u8 ObjectAttributeFlags;
+} ppu_mode;
 
 typedef struct {
-    LCDControl lcdc; // LCD Control
-    LCDStatus  stat; // LCD Status
+    lcd_control lcdc; // LCD Control
+    lcd_status  stat; // LCD Status
     u8 scy;  // Viewport Y
     u8 scx;  // Viewport X
     u8 ly;   // LCD Y, read-only
     u8 lyc;  // LY compare?
 
     u8 lx;   // Internal scanline counter
-} PPU;
+    u8 fifo_background;
+    u8 fifo_sprite;
+} ppu;
 
 typedef struct {
     u8 y;
     u8 x;
     u8 tile_index;
-    ObjectAttributeFlagBits flags;
-} ObjectAttribute;
+    object_attribute_flag_bits flags;
+} object_attribute;
 
-
-void ppu_cycle(PPU *ppu);
+void ppu_cycle(ppu *ppu);
