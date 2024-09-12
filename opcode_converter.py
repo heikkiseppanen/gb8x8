@@ -17,7 +17,6 @@ for key in data['unprefixed']:
     op = data['unprefixed'][key]
     print_op(op)
 
-for op in data['cbprefixed']:
+for key in data['cbprefixed']:
     op = data['cbprefixed'][key]
     print_op(op)
-    break
