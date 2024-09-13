@@ -6,6 +6,8 @@
 #define GLAD_GL_IMPLEMENTATION
 #include "glad/gl.h"
 
+static GLuint g_dummy_vertex_array_object = 0;
+
 static u32 gl_create_shader_module(char const* source, GLenum type);
 
 static void gl_debug_callback(
@@ -17,13 +19,13 @@ static void gl_debug_callback(
     GLchar const *message,
     void const   *userParam);
 
-i32 graphics_init(GLFWwindow* context) {
+bool graphics_initialize(GLFWwindow* context) {
     GB_ASSERT(context != NULL, "Invalid OpenGL context!");
     
     const int version = gladLoadGL(glfwGetProcAddress);
     if (!version) {
-        printf("Failed to initialize OpenGL context\n");
-        return 0;
+        printf("Failed to load OpenGL\n");
+        return false;
     }
 
     // TODO Lock down OpenGL version
@@ -31,9 +33,16 @@ i32 graphics_init(GLFWwindow* context) {
         glDebugMessageCallback(gl_debug_callback, NULL);
     }
 
+    glGenVertexArrays(1, &g_dummy_vertex_array_object);
+    glBindVertexArray(g_dummy_vertex_array_object);
+
+    if (!g_dummy_vertex_array_object) {
+        GB_ERROR("Failed to create dummy VAO for attributeless rendering");
+        return false;
+    }
+
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_FRAMEBUFFER_SRGB);
-
 
     i32 width, height;
     glfwGetWindowSize(context, &width, &height);
@@ -42,12 +51,16 @@ i32 graphics_init(GLFWwindow* context) {
     glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    printf("OpenGL %d.%d initialized\n", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version)); 
+    GB_INFO("OpenGL %d.%d initialized", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version)); 
 
-    return 1;
+    return true;
 }
 
-shader_id create_shader(const char* vertex_source, const char* fragment_source) {
+void graphics_terminate() {
+    glDeleteVertexArrays(1, &g_dummy_vertex_array_object);
+}
+
+shader_id shader_create(const char* vertex_source, const char* fragment_source) {
     shader_id shader = 0;
     u32 vert_module = 0;
     u32 frag_module = 0;
@@ -58,8 +71,8 @@ shader_id create_shader(const char* vertex_source, const char* fragment_source) 
         return 0;
     }
 
-    vert_module = gl_create_shader_module(vertex_source, GL_VERTEX_SHADER);
-    frag_module = gl_create_shader_module(vertex_source, GL_FRAGMENT_SHADER);
+    vert_module = gl_create_shader_module(vertex_source,   GL_VERTEX_SHADER);
+    frag_module = gl_create_shader_module(fragment_source, GL_FRAGMENT_SHADER);
 
     if (!vert_module || !frag_module) {
         glDeleteShader(vert_module);
@@ -97,14 +110,35 @@ shader_id create_shader(const char* vertex_source, const char* fragment_source) 
     glDeleteShader(vert_module);
     glDeleteShader(frag_module);
 
+    glUseProgram(shader);
+
     return shader;
 }
 
-void destroy_shader(shader_id id) {
+void shader_destroy(shader_id id) {
     glDeleteProgram(id);
 }
 
-u32 gl_create_shader_module(const char* source, GLenum type) {
+texture_id texture_create() {
+    texture_id id = 0;
+
+//    glGenTextures(1, &id);
+//    glBindTexture(GL_TEXTURE_2D, id);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,); 
+    
+    return id;
+}
+
+void texture_destroy(texture_id id) {
+    (void)id;
+}
+
+void draw_quad(f32 x, f32 y, f32 width, f32 height) {
+    glUniform4f(0, x * 2.0f - 1.0f, y * 2.0f - 1.0f, width, height);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+static u32 gl_create_shader_module(const char* source, GLenum type) {
     u32 module = glCreateShader(type);
     i32 compilation_success = 0;
 
@@ -127,8 +161,7 @@ u32 gl_create_shader_module(const char* source, GLenum type) {
             module,
             GL_DEBUG_SEVERITY_HIGH,
             length, message, NULL);
-        glDeleteShader(module);
-        module = 0;
+        glDeleteShader(module); module = 0;
     }
 
     return module;
