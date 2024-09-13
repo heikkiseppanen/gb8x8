@@ -20,3 +20,5 @@ typedef struct {
     reg SP;
     reg PC;
 } registers;
+
+void cpu(void);
