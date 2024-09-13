@@ -54,7 +54,9 @@ int main() {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
-        ppu_cycle(&picture_processing_unit);
+        for (u32 cycle = 0; cycle < 35112; ++cycle) { // Approx 60fps 
+            ppu_cycle(&picture_processing_unit);
+        }
 
         glfwSwapBuffers(window);
     }

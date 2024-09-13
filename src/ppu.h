@@ -2,25 +2,32 @@
 
 #include "gb8x8.h"
 
-#define MEM_EXT_RAM_BEGIN    0xA000
+#include "graphics.h"
 
-#define MEM_VRAM_BEGIN       0x8000
-#define MEM_VRAM_END         MEM_EXT_RAM_BEGIN
+#define MEM_EXT_RAM_BEGIN        0xA000
 
-#define MEM_VRAM_BANK_SWITCH 0xFF4F // CBG only
+#define MEM_VRAM_BEGIN           0x8000
+#define MEM_VRAM_END             MEM_EXT_RAM_BEGIN
 
-#define VRAM_TILE_DATA_BEGIN MEM_VRAM_BEGIN
-#define VRAM_TILE_DATA_END   0x9800
+#define MEM_VRAM_BANK_SWITCH     0xFF4F // CBG only
 
-#define VRAM_TILE_MAP0_BEGIN VRAM_TILE_DATA_END
-#define VRAM_TILE_MAP0_END   0x9C00
+#define VRAM_TILE_DATA_BEGIN     MEM_VRAM_BEGIN
+#define VRAM_TILE_DATA_END       0x9800
 
-#define VRAM_TILE_MAP1_BEGIN VRAM_TILE_MAP0_END
-#define VRAM_TILE_MAP1_END   0xA000
+#define VRAM_TILE_MAP0_BEGIN     VRAM_TILE_DATA_END
+#define VRAM_TILE_MAP0_END       0x9C00
 
-#define TILE_SIZE            16
+#define VRAM_TILE_MAP1_BEGIN     VRAM_TILE_MAP0_END
+#define VRAM_TILE_MAP1_END       0xA000
 
-#define PALETTE_SIZE         4
+#define TILE_SIZE                16
+
+#define PALETTE_SIZE             4
+
+#define PPU_SCANLINE_CYCLE_COUNT 226
+
+#define LCD_WIDTH                160
+#define LCD_HEIGHT               144
 
 typedef enum {
     LCD_CONTROL_NULL            = 0,        //
@@ -69,6 +76,14 @@ typedef enum {
 } ppu_mode;
 
 typedef struct {
+    u8 y;
+    u8 x;
+    u8 tile_index;
+    object_attribute_flag_bits flags;
+} object_attribute;
+
+typedef struct {
+    // Registers
     lcd_control lcdc; // LCD Control
     lcd_status  stat; // LCD Status
     u8 scy;  // Viewport Y
@@ -76,16 +91,10 @@ typedef struct {
     u8 ly;   // LCD Y, read-only
     u8 lyc;  // LY compare?
 
+    // Internal
     u8 lx;   // Internal scanline counter
-    u8 fifo_background;
-    u8 fifo_sprite;
+    u32 cycle_count;
 } ppu;
 
-typedef struct {
-    u8 y;
-    u8 x;
-    u8 tile_index;
-    object_attribute_flag_bits flags;
-} object_attribute;
-
+bool ppu_init(ppu *ppu);
 void ppu_cycle(ppu *ppu);
