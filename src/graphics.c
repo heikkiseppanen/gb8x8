@@ -30,8 +30,15 @@ bool graphics_initialize(GLFWwindow* context) {
 
     // TODO Lock down OpenGL version
     if (version >= GLAD_MAKE_VERSION(4, 3)) {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(gl_debug_callback, NULL);
     }
+
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
 
     glGenVertexArrays(1, &g_dummy_vertex_array_object);
     glBindVertexArray(g_dummy_vertex_array_object);
@@ -41,8 +48,6 @@ bool graphics_initialize(GLFWwindow* context) {
         return false;
     }
 
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_FRAMEBUFFER_SRGB);
 
     i32 width, height;
     glfwGetWindowSize(context, &width, &height);
@@ -60,11 +65,10 @@ void graphics_terminate() {
     glDeleteVertexArrays(1, &g_dummy_vertex_array_object);
 }
 
-shader_id shader_create(const char* vertex_source, const char* fragment_source) {
-    shader_id shader = 0;
+u32 shader_create(const char* vertex_source, const char* fragment_source) {
+    u32 id = {};
     u32 vert_module = 0;
     u32 frag_module = 0;
-
     i32 link_success = 0;
 
     if (!vertex_source || !fragment_source) {
@@ -80,61 +84,80 @@ shader_id shader_create(const char* vertex_source, const char* fragment_source) 
         return 0;
     }
 
-    shader = glCreateProgram();
+    id = glCreateProgram();
 
-    if (shader) {
-        glAttachShader(shader, vert_module);
-        glAttachShader(shader, frag_module);
+    if (id) {
+        glAttachShader(id, vert_module);
+        glAttachShader(id, frag_module);
 
-        glLinkProgram(shader);
+        glLinkProgram(id);
 
-        glGetProgramiv(shader, GL_LINK_STATUS, &link_success);
+        glGetProgramiv(id, GL_LINK_STATUS, &link_success);
         if (!link_success) {
             GLsizei len;
             GLchar err[256];
-            glGetProgramInfoLog(shader, 256, &len, err);
+            glGetProgramInfoLog(id, 256, &len, err);
             gl_debug_callback(
                 GL_DEBUG_SOURCE_SHADER_COMPILER,
                 GL_DEBUG_TYPE_ERROR,
-                shader,
+                id,
                 GL_DEBUG_SEVERITY_HIGH,
                 len, err, NULL);
-            glDeleteProgram(shader);
-            shader = 0;
+            glDeleteProgram(id);
+            id = 0;
         }
     }
 
-    glDetachShader(shader, vert_module);
-    glDetachShader(shader, frag_module);
+    glDetachShader(id, vert_module);
+    glDetachShader(id, frag_module);
 
     glDeleteShader(vert_module);
     glDeleteShader(frag_module);
 
-    glUseProgram(shader);
+    glUseProgram(id);
 
-    return shader;
+    return id;
 }
 
-void shader_destroy(shader_id id) {
+void shader_destroy(u32 id) {
     glDeleteProgram(id);
 }
 
-texture_id texture_create() {
-    texture_id id = 0;
+u32 texture_create(u32 width, u32 height) {
+    u32 id = 0;
 
-//    glGenTextures(1, &id);
-//    glBindTexture(GL_TEXTURE_2D, id);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,); 
+    (void) width;
+    (void) height;
+    glGenTextures(1, &id);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, id);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 160, 144, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, NULL); 
+
+    u32 arr[160] = {};
+
+    u32 *it = arr;
+    u32 *end = arr + 160;
+    while (it != end) *(it++) = 0xFF0000FF;
+
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 144 -32, 160, 1, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, arr);
     
     return id;
 }
 
-void texture_destroy(texture_id id) {
-    (void)id;
+void texture_destroy(u32 texture) {
+    glDeleteTextures(1, &texture);
 }
 
-void draw_quad(f32 x, f32 y, f32 width, f32 height) {
+void draw_quad(u32 tex, f32 x, f32 y, f32 width, f32 height) {
     glUniform4f(0, x * 2.0f - 1.0f, y * 2.0f - 1.0f, width, height);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 

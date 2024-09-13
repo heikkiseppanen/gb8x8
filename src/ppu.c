@@ -21,9 +21,6 @@ inline static const char *mode_to_string(ppu_mode mode) {
 
 inline static lcd_status set_mode(lcd_status stat, ppu_mode mode) {
     const lcd_status new_stat = (stat & ~LCD_STATUS_PPU_MODE_MASK) | (mode & LCD_STATUS_PPU_MODE_MASK);
-
-    GB_INFO("Setting ppu mode to %s", mode_to_string(mode));
-
     return new_stat;
 }
 

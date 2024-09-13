@@ -15,28 +15,30 @@ const char *vert_source =
 "out vec2 uv;                                                                \n"
 "                                                                            \n"
 "void main() {                                                               \n"
-//"   gl_Position = vec4(                                                      \n"
-//"       0.0f + (float(gl_VertexID & 1) * 0.5f),                  \n"
-//"       -1.0f + (float(gl_VertexID > 1) * 0.5f),                  \n"
-//"       0.0f, 0.0f                                                            \n"
-//"   ); 
-"   vec2 positions[4] = vec2[](                                              \n"
-"       vec2(u_extent.x + ((gl_VertexID & 1) * u_extent.z), u_extent.y),  // Top-left                                       \n"
-"       vec2(u_extent.x + ((gl_VertexID & 1) * u_extent.z), u_extent.y),  // Top-right                                      \n"
-"       vec2(u_extent.x + ((gl_VertexID & 1) * u_extent.z), u_extent.y + u_extent.w), // Bottom-left                                   \n"
-"       vec2(u_extent.x + ((gl_VertexID & 1) * u_extent.z), u_extent.y + u_extent.w)   // Bottom-right                                    \n"
+"   const float left_vert   = float(gl_VertexID & 1);                        \n"
+"   const float bottom_vert = float(gl_VertexID > 1);                        \n"
+"                                                                            \n"
+"   gl_Position = vec4(                                                      \n"
+"       u_extent.x + (left_vert   * u_extent.z),                             \n"
+"       u_extent.y + (bottom_vert * u_extent.w),                             \n"
+"       0.0f, 1.0f                                                           \n"
 "   );                                                                       \n"
-"   gl_Position = vec4(positions[gl_VertexID], 0.0, 1.0);                    \n"
+"                                                                            \n"
+"   uv = vec2(left_vert, bottom_vert);                                       \n"
 "}                                                                           \n";
 
 const char *frag_source = 
 "#version 430                                                                \n"
 "                                                                            \n"
+"layout(location = 1) uniform sampler2D u_texture;                           \n"
+"                                                                            \n"
+"in vec2 uv;                                                                 \n"
+"                                                                            \n"
 "out vec4 frag_color;                                                        \n"
 "                                                                            \n"
 "void main() {                                                               \n"
-//"   frag_color = texture(u_texture, gl_FragCoord);                         \n  "
-"   frag_color = vec4(gl_FragCoord);                               \n"
+"   frag_color = vec4(texture(u_texture, uv).xyz, 1.0f);                                     \n"
+//"   frag_color = vec4(uv, 0.0, 1.0f);                                        \n"
 "}                                                                           \n";
 
 void glfw_error_callback(int err, const char* msg) {
@@ -48,8 +50,8 @@ int main() {
     GLFWmonitor *monitor = NULL;
     GLFWvidmode const *video_mode = NULL;
 
-    shader_id display_shader   = 0;
-    //texture_id display_texture = 0;
+    u32 display_shader  = 0;
+    u32 display_texture = 0;
 
     glfwSetErrorCallback((GLFWerrorfun)glfw_error_callback);
 
@@ -84,7 +86,8 @@ int main() {
         .stat = PPU_MODE_DRAWING & LCD_STATUS_PPU_MODE_MASK
     };
 
-    display_shader = shader_create(vert_source, frag_source);
+    display_shader  = shader_create(vert_source, frag_source);
+    display_texture = texture_create(LCD_WIDTH, LCD_HEIGHT);
 
     // Application loop
     while(!glfwWindowShouldClose(window)) {
@@ -98,12 +101,13 @@ int main() {
             ppu_cycle(&picture_processing_unit);
         }
 
-        draw_quad(0.0f, 0.0, 1.0f, 1.0f);
+        draw_quad(display_texture, 0.0f, 0.0, 2.0f, 2.0f);
 
         glfwSwapBuffers(window);
     }
 
 error:
+    texture_destroy(display_texture);
     shader_destroy(display_shader);
     graphics_terminate();
     glfwTerminate();
