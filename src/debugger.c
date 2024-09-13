@@ -7,7 +7,14 @@ static void display_instructions(uint8_t *buffer, operation *ops) {
     uint8_t i = 0;
     while(i < 16) {
         operation op = ops[*buffer];
-        GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s", i, GB_TERM_RED, op.name);
+
+        if (op.operand2[0])
+            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s\t%s, %s", i, GB_TERM_RED, op.name, op.operand1, op.operand2);
+        else if (op.operand1[0])
+            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s\t%s", i, GB_TERM_RED, op.name, op.operand1);
+        else
+            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s", i, GB_TERM_RED, op.name);
+
         for (int byte_count = op.bytes; byte_count; byte_count--)
             buffer++;
         i++;

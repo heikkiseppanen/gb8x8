@@ -18,7 +18,7 @@ void cpu(void) {
     _Bool interrupt = 0;
     uint8_t opcode = 0;
     operation operations[512];
-    
+
     create_op_table(operations);
 
     while (1) {
