@@ -4,12 +4,14 @@
 #include "GLFW/glfw3.h"
 
 #include "graphics.h"
+#include "cpu.h"
 
 void glfw_error_callback(int err, char const* msg) {
     printf("GLFW error: %x %s\n", err, msg);
 }
 
 int main() {
+    cpu();
     GLFWwindow *window   = NULL;
     GLFWmonitor *monitor = NULL;
     GLFWvidmode const *video_mode = NULL;

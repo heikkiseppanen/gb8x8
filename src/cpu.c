@@ -1,21 +1,36 @@
 #include "gb8x8.h"
+#include "cpu.h"
 
 #ifndef DEBUGGER
 #define DEBUGGER
 #endif
 
-void cpu() {
-    // uint8_t buffer[10] = {''};
-    uint8_t interruptCounter = 100;
+void debugger(uint8_t *buffer, registers *regs);
+
+uint8_t read_memory(uint8_t *buffer) {
+    return *buffer;
+}
+
+void cpu(void) {
+    uint8_t buffer[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    registers regs = {0};
+    uint8_t cycleCounter = 100;
     _Bool interrupt = 0;
+    uint8_t opcode = 0;
 
     while (1) {
-        //do processor stuff
+        cycleCounter--;
+        opcode = read_memory(buffer);
+        switch (opcode)
+            case 0x00:
+                break;
+
         #ifdef DEBUGGER
-        debugger();
+        debugger(buffer, &regs);
         #endif
-        if (interruptCounter == 0) {
-            interruptCounter = 100;
+
+        if (cycleCounter == 0) {
+            cycleCounter += 100;
             //check interrupts
             if (interrupt)
                 break;

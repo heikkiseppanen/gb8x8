@@ -4,10 +4,10 @@
 
 typedef union {
     uint16_t r;
-    struct hl {
+    struct {
         uint8_t hi;
         uint8_t lo;
-    };
+    } hl;
 } reg;
 
 typedef struct {
@@ -17,5 +17,6 @@ typedef struct {
     reg HL;
     reg SP;
     reg PC;
-
 } registers;
+
+void cpu(void);
