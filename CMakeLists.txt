@@ -16,6 +16,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${SRC_DIR}/graphics.c
     ${SRC_DIR}/cpu.c
     ${SRC_DIR}/debugger.c
+    ${SRC_DIR}/operations.c
 )
 
 target_include_directories(${PROJECT_NAME}

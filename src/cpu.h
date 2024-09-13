@@ -2,6 +2,8 @@
 
 #include "gb8x8.h"
 
+#include "operations.h"
+
 typedef union {
     uint16_t r;
     struct {
@@ -17,5 +19,4 @@ typedef struct {
     reg HL;
     reg SP;
     reg PC;
-
 } registers;

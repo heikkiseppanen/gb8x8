@@ -1,8 +1,20 @@
 #include "operations.h"
+#include "string.h"
 
-void    create_op_table(void) {
+operation create_operation(char const *name, uint8_t bytes, uint8_t cycles, char const *operand1, char const *operand2) {
+    operation tmp = {.bytes=bytes, .cycles=cycles};
 
-    operation operations[] = {
+    strcpy(tmp.name, name);
+    if (operand1)
+        strcpy(tmp.operand1, operand1);
+    if (operand2)
+        strcpy(tmp.operand2, operand2);
+    return tmp;
+}
+
+operation *create_op_table(void) {
+
+    return (operation[]){
         create_operation("NOP", 1, 1, NULL, NULL),
         create_operation("LD", 3, 3, "$BC", "$n16"),
         create_operation("LD", 1, 2, "$BC", "$A"),
@@ -206,7 +218,7 @@ void    create_op_table(void) {
         create_operation("RET", 1, 5, "$Z", NULL),
         create_operation("RET", 1, 4, NULL, NULL),
         create_operation("JP", 3, 4, "$Z", "$a16"),
-        create_operation("PREFIX", 1, 1, NULL, NULL),
+        create_operation("CB", 1, 1, NULL, NULL),
         create_operation("CALL", 3, 6, "$Z", "$a16"),
         create_operation("CALL", 3, 6, "$a16", NULL),
         create_operation("ADC", 2, 2, "$A", "$n8"),
@@ -214,7 +226,7 @@ void    create_op_table(void) {
         create_operation("RET", 1, 5, "$NC", NULL),
         create_operation("POP", 1, 3, "$DE", NULL),
         create_operation("JP", 3, 4, "$NC", "$a16"),
-        create_operation("ILLEGAL_D3", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
         create_operation("CALL", 3, 6, "$NC", "$a16"),
         create_operation("PUSH", 1, 4, "$DE", NULL),
         create_operation("SUB", 2, 2, "$A", "$n8"),
@@ -222,32 +234,32 @@ void    create_op_table(void) {
         create_operation("RET", 1, 5, "$C", NULL),
         create_operation("RETI", 1, 4, NULL, NULL),
         create_operation("JP", 3, 4, "$C", "$a16"),
-        create_operation("ILLEGAL_DB", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
         create_operation("CALL", 3, 6, "$C", "$a16"),
-        create_operation("ILLEGAL_DD", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
         create_operation("SBC", 2, 2, "$A", "$n8"),
         create_operation("RST", 1, 4, "$$18", NULL),
         create_operation("LDH", 2, 3, "$a8", "$A"),
         create_operation("POP", 1, 3, "$HL", NULL),
         create_operation("LD", 1, 2, "$C", "$A"),
-        create_operation("ILLEGAL_E3", 1, 1, NULL, NULL),
-        create_operation("ILLEGAL_E4", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
         create_operation("PUSH", 1, 4, "$HL", NULL),
         create_operation("AND", 2, 2, "$A", "$n8"),
         create_operation("RST", 1, 4, "$$20", NULL),
         create_operation("ADD", 2, 4, "$SP", "$e8"),
         create_operation("JP", 1, 1, "$HL", NULL),
         create_operation("LD", 3, 4, "$a16", "$A"),
-        create_operation("ILLEGAL_EB", 1, 1, NULL, NULL),
-        create_operation("ILLEGAL_EC", 1, 1, NULL, NULL),
-        create_operation("ILLEGAL_ED", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
         create_operation("XOR", 2, 2, "$A", "$n8"),
         create_operation("RST", 1, 4, "$$28", NULL),
         create_operation("LDH", 2, 3, "$A", "$a8"),
         create_operation("POP", 1, 3, "$AF", NULL),
         create_operation("LD", 1, 2, "$A", "$C"),
         create_operation("DI", 1, 1, NULL, NULL),
-        create_operation("ILLEGAL_F4", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
         create_operation("PUSH", 1, 4, "$AF", NULL),
         create_operation("OR", 2, 2, "$A", "$n8"),
         create_operation("RST", 1, 4, "$$30", NULL),
@@ -255,8 +267,8 @@ void    create_op_table(void) {
         create_operation("LD", 1, 2, "$SP", "$HL"),
         create_operation("LD", 3, 4, "$A", "$a16"),
         create_operation("EI", 1, 1, NULL, NULL),
-        create_operation("ILLEGAL_FC", 1, 1, NULL, NULL),
-        create_operation("ILLEGAL_FD", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
+        create_operation("ILL", 1, 1, NULL, NULL),
         create_operation("CP", 2, 2, "$A", "$n8"),
         create_operation("RST", 1, 4, "$$38", NULL),
         create_operation("RLC", 2, 2, "$B", NULL),

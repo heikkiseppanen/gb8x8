@@ -5,7 +5,7 @@
 #define DEBUGGER
 #endif
 
-void debugger(uint8_t *buffer, registers *regs);
+void debugger(uint8_t *buffer, registers *regs, operation *ops);
 
 uint8_t read_memory(uint8_t *buffer) {
     return *buffer;
@@ -17,16 +17,15 @@ void cpu(void) {
     uint8_t cycle_counter = 100;
     _Bool interrupt = 0;
     uint8_t opcode = 0;
+    operation operations[512] = create_op_table();
 
     while (1) {
         cycle_counter--;
         opcode = read_memory(buffer);
-        switch (opcode)
-            case 0x00:
-                break;
+        operation op = operations[opcode];
 
         #ifdef DEBUGGER
-        debugger(buffer, &regs);
+        debugger(buffer, &regs, operations);
         #endif
 
         if (cycle_counter == 0) {
