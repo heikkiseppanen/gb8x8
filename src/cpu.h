@@ -17,6 +17,5 @@ typedef struct {
     reg HL;
     reg SP;
     reg PC;
-} registers;
 
-void cpu(void);
+} registers;
