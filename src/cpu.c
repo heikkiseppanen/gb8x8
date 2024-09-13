@@ -5,7 +5,7 @@
 #define DEBUGGER
 #endif
 
-void debugger(uint8_t *buffer, registers *regs, operation *ops);
+uint8_t debugger(uint8_t *buffer, registers *regs, operation *ops);
 
 uint8_t read_memory(uint8_t *buffer) {
     return *buffer;
@@ -28,7 +28,10 @@ void cpu(void) {
         (void)op;
 
         #ifdef DEBUGGER
-        debugger(buffer, &regs, operations);
+        uint8_t instruction_cycles = 0;
+        if (!instruction_cycles)
+            instruction_cycles = debugger(buffer, &regs, operations);
+        instruction_cycles--;
         #endif
 
         if (cycle_counter == 0) {
