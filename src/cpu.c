@@ -17,12 +17,15 @@ void cpu(void) {
     uint8_t cycle_counter = 100;
     _Bool interrupt = 0;
     uint8_t opcode = 0;
-    operation operations[512] = create_op_table();
+    operation operations[512];
+    
+    create_op_table(operations);
 
     while (1) {
         cycle_counter--;
         opcode = read_memory(buffer);
         operation op = operations[opcode];
+        (void)op;
 
         #ifdef DEBUGGER
         debugger(buffer, &regs, operations);

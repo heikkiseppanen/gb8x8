@@ -10,4 +10,4 @@ typedef struct {
     char operand2[5];
 } operation;
 
-operation *create_op_table(void);
+void create_op_table(operation *operations);

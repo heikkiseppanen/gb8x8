@@ -12,9 +12,8 @@ operation create_operation(char const *name, uint8_t bytes, uint8_t cycles, char
     return tmp;
 }
 
-operation *create_op_table(void) {
-
-    return (operation[]){
+void create_op_table(operation *operations) {
+    operation ops[] = {
         create_operation("NOP", 1, 1, NULL, NULL),
         create_operation("LD", 3, 3, "$BC", "$n16"),
         create_operation("LD", 1, 2, "$BC", "$A"),
@@ -528,4 +527,7 @@ operation *create_op_table(void) {
         create_operation("SET", 2, 4, "$7", "$HL"),
         create_operation("SET", 2, 2, "$7", "$A")
         };
+
+    for (int i = 0; i < 512; i++)
+        operations[i] = ops[i];
 }
