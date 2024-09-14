@@ -26,17 +26,34 @@ inline static lcd_status set_mode(lcd_status stat, ppu_mode mode) {
 }
 
 ppu ppu_init() {
-    // Fake tile0
     u8 *it = vram;
 
-    *it     = 0b10101010; *(++it) = 0b10101010;
-    *(++it) = 0b01000110; *(++it) = 0b00000000;
-    *(++it) = 0b01101100; *(++it) = 0b00000000;
-    *(++it) = 0b01000100; *(++it) = 0b00000000;
+    // Fake tile0
+    *it     = 0b11110000; *(++it) = 0b00001111;
+    *(++it) = 0b11110000; *(++it) = 0b00001111; 
+    *(++it) = 0b11110000; *(++it) = 0b00001111; 
+    *(++it) = 0b11110000; *(++it) = 0b00001111; 
+    *(++it) = 0b11110000; *(++it) = 0b11110000;
+    *(++it) = 0b11110000; *(++it) = 0b11110000; 
+    *(++it) = 0b11110000; *(++it) = 0b11110000;
+    *(++it) = 0b11110000; *(++it) = 0b11110000; 
+
+    // Fake tile1
     *(++it) = 0b00000000; *(++it) = 0b00000000;
-    *(++it) = 0b01111110; *(++it) = 0b00000000;
-    *(++it) = 0b01000010; *(++it) = 0b00000000;
-    *(++it) = 0b00000000; *(++it) = 0b00000000;
+    *(++it) = 0b00000000; *(++it) = 0b01010100; 
+    *(++it) = 0b00000000; *(++it) = 0b01110100; 
+    *(++it) = 0b00000000; *(++it) = 0b01010100; 
+    *(++it) = 0b00000000; *(++it) = 0b00000000; 
+    *(++it) = 0b00101000; *(++it) = 0b00000000;
+    *(++it) = 0b10000010; *(++it) = 0b00000000; 
+    *(++it) = 0b11111110; *(++it) = 0b00000000;
+
+    u8 *idx = vram + (VRAM_TILE_MAP0 - MEM_VRAM);
+    u8 *end = vram + (VRAM_TILE_MAP1 - MEM_VRAM);
+    while (idx != end) {
+        *(idx++) = 0;
+        *(idx++) = 1;
+    }
 
     return (ppu){
         .lcdc = LCD_CONTROL_BG_WIN_TILE_BANK, // To use bank 0
@@ -103,7 +120,7 @@ void ppu_cycle(ppu *self, lcd* display) {
                 case 1: {
                     // TODO banking and scrolling
                     const u16 tile_offset = (u16)bg->tile_index * 16u;
-                    const u16 line_offset = (2u * (u16)self->ly) & 0x07;
+                    const u16 line_offset = 2u * ((u16)self->ly & 0x07);
                     const u16 address = VRAM_TILE_DATA0 + tile_offset + line_offset;
                     bg->tile_low = vram[address - MEM_VRAM];
                     bg->step += 1;
@@ -112,7 +129,7 @@ void ppu_cycle(ppu *self, lcd* display) {
                 case 2: {
                     // TODO banking and scrolling
                     const u16 tile_offset = (u16)bg->tile_index * 16u;
-                    const u16 line_offset = (2u * (u16)self->ly) & 0x07;
+                    const u16 line_offset = 2u * ((u16)self->ly & 0x07);
                     const u16 address = VRAM_TILE_DATA0 + tile_offset + line_offset + 1;
                     bg->tile_high = vram[address - MEM_VRAM];
                     bg->step += 1;
@@ -151,10 +168,10 @@ void ppu_cycle(ppu *self, lcd* display) {
 
                 // TODO Proper palettes
                 static const u32 palette[4] = {
-                    0x9BBC0FFF,
-                    0x8BAC0FFF,
-                    0x306230FF,
-                    0x0F380FFF
+                    0x081820FF,
+                    0x346856FF,
+                    0x88C070FF,
+                    0xE0F8D0FF
                 };
 
                 GB_INFO("Putting pixel %d %d", self->lx, self->ly);
