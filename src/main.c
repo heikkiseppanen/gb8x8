@@ -24,7 +24,7 @@ const char *vert_source =
 "       0.0f, 1.0f                                                           \n"
 "   );                                                                       \n"
 "                                                                            \n"
-"   uv = vec2(left_vert, bottom_vert);                                       \n"
+"   uv = vec2(left_vert, 1.0f - bottom_vert); // Flip Y                      \n"
 "}                                                                           \n";
 
 const char *frag_source = 
@@ -37,8 +37,7 @@ const char *frag_source =
 "out vec4 frag_color;                                                        \n"
 "                                                                            \n"
 "void main() {                                                               \n"
-"   frag_color = vec4(texture(u_texture, uv).xyz, 1.0f);                                     \n"
-//"   frag_color = vec4(uv, 0.0, 1.0f);                                        \n"
+"   frag_color = vec4(texture(u_texture, uv));                               \n"
 "}                                                                           \n";
 
 void glfw_error_callback(int err, const char* msg) {
@@ -71,7 +70,7 @@ int main() {
         glfwWindowHint(GLFW_REFRESH_RATE, video_mode->refreshRate);
     }
 
-    window = glfwCreateWindow(LCD_WIDTH * 2, LCD_HEIGHT * 2, "gb8x8", NULL, NULL);
+    window = glfwCreateWindow(LCD_WIDTH * 4, LCD_HEIGHT * 4, "gb8x8", NULL, NULL);
     if (!window) {
         goto error;
     }
@@ -82,12 +81,18 @@ int main() {
         goto error;
     }
 
-    ppu picture_processing_unit = {
-        .stat = PPU_MODE_DRAWING & LCD_STATUS_PPU_MODE_MASK
+    ppu picture_processing_unit = ppu_init();
+
+    lcd display = {
+        .shader  = shader_create(vert_source, frag_source),
+        .texture = texture_create(LCD_WIDTH, LCD_HEIGHT),
     };
 
-    display_shader  = shader_create(vert_source, frag_source);
-    display_texture = texture_create(LCD_WIDTH, LCD_HEIGHT);
+    for (u32 y = 0; y != LCD_HEIGHT; ++y) {
+        for (u32 x = 0; x != LCD_WIDTH ; ++x) {
+            display.framebuffer[x + (y * LCD_WIDTH)] = 0xFF8888FF * ((x & 1) ^ (y & 1));
+        }
+    }
 
     // Application loop
     while(!glfwWindowShouldClose(window)) {
@@ -98,10 +103,12 @@ int main() {
         }
 
         for (u32 cycle = 0; cycle < 35112; ++cycle) { // Approx 60fps 
-            ppu_cycle(&picture_processing_unit);
+            ppu_cycle(&picture_processing_unit, &display);
         }
 
-        draw_quad(display_texture, 0.0f, 0.0, 2.0f, 2.0f);
+        texture_set_sub_image(display.texture, 0,0, LCD_WIDTH, LCD_HEIGHT, display.framebuffer);
+
+        draw_quad(display.texture, 0.0f, 0.0, 2.0f, 2.0f);
 
         glfwSwapBuffers(window);
     }

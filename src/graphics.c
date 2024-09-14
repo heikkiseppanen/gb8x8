@@ -6,6 +6,9 @@
 #define GLAD_GL_IMPLEMENTATION
 #include "glad/gl.h"
 
+#define PIXEL_FORMAT    GL_RGBA
+#define PIXEL_DATA_TYPE GL_UNSIGNED_INT_8_8_8_8
+
 static GLuint g_dummy_vertex_array_object = 0;
 
 static u32 gl_create_shader_module(char const* source, GLenum type);
@@ -136,17 +139,20 @@ u32 texture_create(u32 width, u32 height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 160, 144, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, NULL); 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 160, 144, 0, PIXEL_FORMAT, PIXEL_DATA_TYPE, NULL); 
 
     u32 arr[160] = {};
 
     u32 *it = arr;
     u32 *end = arr + 160;
     while (it != end) *(it++) = 0xFF0000FF;
-
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 144 -32, 160, 1, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, arr);
     
     return id;
+}
+
+void texture_set_sub_image(u32 texture, u32 x, u32 y, u32 width, u32 height, const void* pixel_data) {
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, PIXEL_FORMAT, PIXEL_DATA_TYPE, pixel_data);
 }
 
 void texture_destroy(u32 texture) {
@@ -184,7 +190,8 @@ static u32 gl_create_shader_module(const char* source, GLenum type) {
             module,
             GL_DEBUG_SEVERITY_HIGH,
             length, message, NULL);
-        glDeleteShader(module); module = 0;
+        glDeleteShader(module);
+        module = 0;
     }
 
     return module;

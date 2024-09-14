@@ -3,91 +3,166 @@
 // static u8 vram[MEM_VRAM_END - MEM_VRAM_END] = {};
 
 // Dot 4.194MHz
-// CPU dot / 4
-// PPU dot / 2 == 2 * CPU
+// CPU cycle = dot / 4
+// PPU cycle = dot / 2 == 2 * CPU == 2 dots 
 // OAM Scan 80 dots == 20 CPU cycles == 40 PPU cycles
 // Scanline 456 dots == 114 CPU cycles == 228 PPU cycles
 
-inline static const char *mode_to_string(ppu_mode mode) {
-    switch (mode) {
-        case PPU_MODE_H_BLANK:  return "H_BLANK";
-        case PPU_MODE_V_BLANK:  return "V_BLANK";
-        case PPU_MODE_OAM_SCAN: return "OAM_SCAN";
-        case PPU_MODE_DRAWING:  return "DRAWING";
+static u8 vram[MEM_EXT_RAM - MEM_VRAM] = {};
 
-        default:                return "NULL";
-    }
-}
-
-inline static lcd_status set_mode(lcd_status stat, ppu_mode mode) {
-    const lcd_status new_stat = (stat & ~LCD_STATUS_PPU_MODE_MASK) | (mode & LCD_STATUS_PPU_MODE_MASK);
-    return new_stat;
-}
-
-//bool ppu_create(ppu* self) {
-//    *self = (ppu){
-//        .
-//    };
+//inline static const char *mode_to_string(ppu_mode mode) {
+//    switch (mode) {
+//        case PPU_MODE_H_BLANK:  return "H_BLANK";
+//        case PPU_MODE_V_BLANK:  return "V_BLANK";
+//        case PPU_MODE_OAM_SCAN: return "OAM_SCAN";
+//        case PPU_MODE_DRAWING:  return "DRAWING";
+//
+//        default:                return "NULL";
+//    }
 //}
 
-void ppu_cycle(ppu *ppu) {
-    const u32 scanline_cycles = 228;
-    switch (ppu->stat & LCD_STATUS_PPU_MODE_MASK) {
+inline static lcd_status set_mode(lcd_status stat, ppu_mode mode) {
+    return (stat & ~LCD_STATUS_PPU_MODE_MASK) | (mode & LCD_STATUS_PPU_MODE_MASK);
+}
+
+ppu ppu_init() {
+    // Fake tile0
+    u8 *it = vram;
+
+    *it     = 0b10101010; *(++it) = 0b10101010;
+    *(++it) = 0b01000110; *(++it) = 0b00000000;
+    *(++it) = 0b01101100; *(++it) = 0b00000000;
+    *(++it) = 0b01000100; *(++it) = 0b00000000;
+    *(++it) = 0b00000000; *(++it) = 0b00000000;
+    *(++it) = 0b01111110; *(++it) = 0b00000000;
+    *(++it) = 0b01000010; *(++it) = 0b00000000;
+    *(++it) = 0b00000000; *(++it) = 0b00000000;
+
+    return (ppu){
+        .lcdc = LCD_CONTROL_BG_WIN_TILE_BANK, // To use bank 0
+        .stat = set_mode(LCD_STATUS_NULL, PPU_MODE_DRAWING),
+    };
+}
+
+void ppu_cycle(ppu *self, lcd* display) {
+    static const u32 scanline_cycle_count = 228;
+    switch (self->stat & LCD_STATUS_PPU_MODE_MASK) {
         case PPU_MODE_H_BLANK: {
-            if (ppu->cycle_count == scanline_cycles) {
-                ppu_mode next_mode = ++(ppu->ly) < LCD_HEIGHT
-                    ? PPU_MODE_OAM_SCAN
-                    : PPU_MODE_V_BLANK;
-                ppu->stat = set_mode(ppu->stat, next_mode);
-                ppu->cycle_count = 0;
+            if (self->scanline_cycle >= scanline_cycle_count) {
+                if (++(self->ly) >= LCD_HEIGHT) {
+                    self->stat = set_mode(self->stat, PPU_MODE_V_BLANK);
+                    GB_INFO("HBLANK -> VBLANK");
+                } else {
+                    self->stat = set_mode(self->stat, PPU_MODE_OAM_SCAN);
+                    GB_INFO("HBLANK -> OAM");
+                }
+                self->lx = 0;
+                self->scanline_cycle = 0;
             }
         } break;
 
         case PPU_MODE_V_BLANK: {
-            if (ppu->cycle_count == scanline_cycles && ++(ppu->ly) >= LCD_HEIGHT + 10) {
-                    ppu->stat = set_mode(ppu->stat, PPU_MODE_OAM_SCAN);
-                    ppu->cycle_count = 0;
+            if (self->scanline_cycle == scanline_cycle_count) {
+                    if (++(self->ly) >= LCD_HEIGHT + 10) {
+                        self->ly = 0;
+                        self->stat = set_mode(self->stat, PPU_MODE_OAM_SCAN);
+                        GB_INFO("VBLANK -> OAM");
+                    }
+                    self->scanline_cycle = 0;
             }
         } break;
 
         case PPU_MODE_OAM_SCAN: {
             const u32 oam_cycle_count = 40;
-            if (ppu->cycle_count == oam_cycle_count) {
-                ppu->stat = set_mode(ppu->stat, PPU_MODE_DRAWING);
+            if (self->scanline_cycle == oam_cycle_count) {
+                self->stat = set_mode(self->stat, PPU_MODE_DRAWING);
+                // TODO Clear FIFOs
+                self->background_pixels = (fifo){};
+                GB_INFO("OAM -> DRAW");
             }
         } break;
 
         case PPU_MODE_DRAWING: {
-            const u32 random_cycle_count = 40 + 100;
-            if (ppu->cycle_count == random_cycle_count) {
-                ppu->stat = set_mode(ppu->stat, PPU_MODE_H_BLANK);
+            if (self->lx == LCD_WIDTH) {
+                self->stat = set_mode(self->stat, PPU_MODE_H_BLANK);
+                GB_INFO("DRAW -> HBLANK");
+                break;
+            }
+            
+            fifo *bg = &self->background_pixels;
+            switch(bg->step) {
+                case 0: {
+                    // TODO banking and scrolling
+                    const u16 tile_x = self->lx / 8;
+                    const u16 tile_y = self->ly / 8;
+                    const u16 address = VRAM_TILE_MAP0 + ((tile_x + (TILE_MAP_WIDTH * tile_y)) & 0x03ff);
+                    bg->tile_index = vram[address - MEM_VRAM];
+                    bg->step += 1;
+                } break;
+
+                case 1: {
+                    // TODO banking and scrolling
+                    const u16 tile_offset = (u16)bg->tile_index * 16u;
+                    const u16 line_offset = (2u * (u16)self->ly) & 0x07;
+                    const u16 address = VRAM_TILE_DATA0 + tile_offset + line_offset;
+                    bg->tile_low = vram[address - MEM_VRAM];
+                    bg->step += 1;
+                } break;
+
+                case 2: {
+                    // TODO banking and scrolling
+                    const u16 tile_offset = (u16)bg->tile_index * 16u;
+                    const u16 line_offset = (2u * (u16)self->ly) & 0x07;
+                    const u16 address = VRAM_TILE_DATA0 + tile_offset + line_offset + 1;
+                    bg->tile_high = vram[address - MEM_VRAM];
+                    bg->step += 1;
+                } break;
+
+                case 3: {
+                    if (bg->size > 0) break; // BG fetcher waits for fifo to be empty
+
+                    u8 lsb = bg->tile_low;
+                    u8 msb = bg->tile_high;
+
+                    for (i8 bit = 7; bit > -1; --bit) {
+                        u8 msb_bit = msb >> bit & 0x1;
+                        u8 lsb_bit = lsb >> bit & 0x1;
+                        u8 color = (msb_bit << 1) | lsb_bit;
+
+                        // FIFO push
+                        bg->pixels[(bg->first + bg->size) & 0x0F] = (pixel){ .color_id = color };
+                        bg->size += 1;
+                    }
+
+                    bg->tile_x = (bg->tile_x + 1) & 0x1F;
+                    bg->step = 0;
+                } break;
+            }
+
+            // put pixel to lcd
+            if (bg->size) {
+                // FIFO_POP
+                const u8 color_id = bg->pixels[bg->first].color_id;
+
+                GB_ASSERT(color_id < 4, "FIFO color id out of range");
+
+                bg->first = (bg->first + 1) & 0x0F;
+                bg->size  -= 1;
+
+                // TODO Proper palettes
+                static const u32 palette[4] = {
+                    0x9BBC0FFF,
+                    0x8BAC0FFF,
+                    0x306230FF,
+                    0x0F380FFF
+                };
+
+                GB_INFO("Putting pixel %d %d", self->lx, self->ly);
+                display->framebuffer[self->lx + (self->ly * LCD_WIDTH)] = palette[color_id];
+                self->lx += 1;
             }
         } break;
     }
 
-    ppu->cycle_count += 1;
+    self->scanline_cycle += 1;
 }
-
-//}
-//    u8 bytes[16] = {0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C};
-//
-//
-//    // Conversion of 2 bytes into lines of 2 bit color IDs
-//    for (u32 y = 0; y < 8; ++y) {
-//        u16 lsb = bytes[y * 2];
-//        u16 msb = bytes[y * 2 + 1];
-//
-//        printf("%08b %c %08b %c ",
-//            lsb, y == 4 ? '+' : ' ',
-//            msb, y == 4 ? '=' : ' ');
-//
-//        u16 line = 0;
-//        for (u8 bit = 0; bit < 8; ++bit) {
-//            ids |= ((lsb & 1) | ((msb & 1) << 1)) << (bit * 2);
-//            lsb >>= 1;
-//            msb >>= 1;
-//        }
-//
-//        printf("%016b\n", ids);
-//    }
-//};

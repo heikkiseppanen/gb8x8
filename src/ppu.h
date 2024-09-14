@@ -4,41 +4,38 @@
 
 #include "graphics.h"
 
-#define MEM_EXT_RAM_BEGIN        0xA000
-
-#define MEM_VRAM_BEGIN           0x8000
-#define MEM_VRAM_END             MEM_EXT_RAM_BEGIN
 
 #define MEM_VRAM_BANK_SWITCH     0xFF4F // CBG only
 
-#define VRAM_TILE_DATA_BEGIN     MEM_VRAM_BEGIN
-#define VRAM_TILE_DATA_END       0x9800
+#define MEM_VRAM                 0x8000
+#define MEM_EXT_RAM              0xA000
 
-#define VRAM_TILE_MAP0_BEGIN     VRAM_TILE_DATA_END
-#define VRAM_TILE_MAP0_END       0x9C00
+// VRAM OFFSETS
 
-#define VRAM_TILE_MAP1_BEGIN     VRAM_TILE_MAP0_END
-#define VRAM_TILE_MAP1_END       0xA000
+#define VRAM_TILE_DATA0          MEM_VRAM
+#define VRAM_TILE_DATA1          0x8800
+#define VRAM_TILE_DATA2          0x9000
+#define VRAM_TILE_MAP0           0x9800
+#define VRAM_TILE_MAP1           0x9C00
 
-#define TILE_SIZE                16
+#define TILE_MAP_WIDTH           32
+#define TILE_MAP_HEIGHT          32
 
 #define PALETTE_SIZE             4
-
-#define PPU_SCANLINE_CYCLE_COUNT 226
 
 #define LCD_WIDTH                160
 #define LCD_HEIGHT               144
 
 typedef enum {
-    LCD_CONTROL_NULL            = 0,        //
-    LCD_CONTROL_BG_WIN_PRIORITY = 1u,       // OFF         ON        -> DIFFERENT FOR CGB
-    LCD_CONTROL_OBJ_ENABLE      = 1u << 1u, // OFF         ON
-    LCD_CONTROL_OBJ_SIZE        = 1u << 2u, // 8x8         8x16
-    LCD_CONTROL_BG_TILE_MAP     = 1u << 3u, // 9800-9BFF   9C00-9FFF
-    LCD_CONTROL_BG_WIN_TILES    = 1u << 4u, // 8800-97FF   8000-8FFF
-    LCD_CONTROL_WIN_ENABLE      = 1u << 5u, // OFF         ON
-    LCD_CONTROL_WIN_TILE_MAP    = 1u << 6u, // 9800-0BFF   9C00-9FFF
-    LCD_CONTROL_LCD_PPU_ENABLE  = 1u << 7u, // OFF         ON
+    LCD_CONTROL_NULL              = 0,        //
+    LCD_CONTROL_BG_WIN_PRIORITY   = 1u,       // OFF             ON        -> DIFFERENT FOR CGB
+    LCD_CONTROL_OBJ_ENABLE        = 1u << 1u, // Disabled        Enabled
+    LCD_CONTROL_OBJ_SIZE          = 1u << 2u, // 8x8             8x16
+    LCD_CONTROL_BG_TILE_MAP_BANK  = 1u << 3u, // VRAM_TILE_MAP0  VRAM_TILE_MAP1
+    LCD_CONTROL_BG_WIN_TILE_BANK  = 1u << 4u, // VRAM_TILE_DATA0 VRAM_TILE_DATA1
+    LCD_CONTROL_WIN_ENABLE        = 1u << 5u, // OFF             ON
+    LCD_CONTROL_WIN_TILE_MAP_BANK = 1u << 6u, // 9800-0BFF       9C00-9FFF
+    LCD_CONTROL_LCD_PPU_ENABLE    = 1u << 7u, // OFF             ON
 } lcd_control_bits;
 typedef u8 lcd_control;
 
@@ -83,18 +80,51 @@ typedef struct {
 } object_attribute;
 
 typedef struct {
+    u32 framebuffer[LCD_WIDTH * LCD_HEIGHT];
+
+    u32 shader;
+    u32 texture;
+} lcd;
+
+typedef struct {
+    u8  color_id;
+//  TODO
+//  u8  palette;
+//  u8  sprite_priority;
+//  u8  background_priority;
+} pixel;
+
+typedef struct {
+    // Ring buffer
+    pixel pixels[16];
+    u8    first;
+    u8    size;
+
+    // Fetcher
+    u8  step;
+    u8  tile_x;
+    u8  tile_y;
+    u8  tile_index;
+    u8  tile_low;
+    u8  tile_high;
+} fifo;
+
+typedef struct {
     // Registers
     lcd_control lcdc; // LCD Control
     lcd_status  stat; // LCD Status
-    u8 scy;  // Viewport Y
-    u8 scx;  // Viewport X
-    u8 ly;   // LCD Y, read-only
-    u8 lyc;  // LY compare?
+    u8 scy;           // Viewport Y
+    u8 scx;           // Viewport X
+    u8 ly;            // LCD Y
+    u8 lyc;           // LY compare
 
     // Internal
     u8 lx;   // Internal scanline counter
-    u32 cycle_count;
+    u32 scanline_cycle;
+
+    fifo background_pixels;
+    fifo object_pixels;
 } ppu;
 
-bool ppu_init(ppu *ppu);
-void ppu_cycle(ppu *ppu);
+ppu  ppu_init();
+void ppu_cycle(ppu *self, lcd* display);
