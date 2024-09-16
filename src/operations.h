@@ -7,36 +7,32 @@
 
 #define FOREACH_OP(OP) \
     OP(NOP) \
+    OP(ILL) \
+    OP(ADC) \
+    OP(ADD) \
     OP(LD) \
     OP(INC) \
     OP(DEC) \
     OP(RLCA) \
-    OP(ADD) \
     OP(RRCA) \
     OP(STOP) \
     OP(RLA) \
-    OP(JR) \
     OP(RRA) \
     OP(DAA) \
     OP(CPL) \
     OP(SCF) \
     OP(CCF) \
     OP(HALT) \
-    OP(ADC) \
     OP(SUB) \
     OP(SBC) \
     OP(AND) \
     OP(XOR) \
     OP(OR) \
     OP(CP) \
-    OP(RET) \
     OP(POP) \
-    OP(JP) \
-    OP(CALL) \
     OP(PUSH) \
     OP(RST) \
     OP(CB) \
-    OP(ILL) \
     OP(RETI) \
     OP(LDH) \
     OP(DI) \
@@ -51,32 +47,42 @@
     OP(SRL) \
     OP(BIT) \
     OP(RES) \
-    OP(SET)
+    OP(SET) \
+    OP(CALL) \
+    OP(JP) \
+    OP(JR) \
+    OP(RET) \
 
 typedef enum {
     FOREACH_OP(GENERATE_ENUM)
 } operation_name;
 
+//OPERAND FILLER is to fill the gap between a and b registers so we can  
+//access all the registers using (reg *)registers + enum
+
 #define FOREACH_OPERAND(OPERAND) \
-    OPERAND(NUL) \
-    OPERAND($BC) \
-    OPERAND($n16) \
     OPERAND($A) \
+    OPERAND($FILLER) \
     OPERAND($B) \
+    OPERAND($C) \
+    OPERAND($D) \
+    OPERAND($E) \
+    OPERAND($H) \
+    OPERAND($L) \
+    OPERAND($AF) \
+    OPERAND($BC) \
+    OPERAND($DE) \
+    OPERAND($HL) \
+    OPERAND($SP) \
+    OPERAND(NUL) \
+    OPERAND($NZ) \
+    OPERAND($Z) \
+    OPERAND($NC) \
+    OPERAND($a8) \
+    OPERAND($e8) \
     OPERAND($n8) \
     OPERAND($a16) \
-    OPERAND($SP) \
-    OPERAND($HL) \
-    OPERAND($C) \
-    OPERAND($DE) \
-    OPERAND($D) \
-    OPERAND($e8) \
-    OPERAND($E) \
-    OPERAND($NZ) \
-    OPERAND($H) \
-    OPERAND($Z) \
-    OPERAND($L) \
-    OPERAND($NC) \
+    OPERAND($n16) \
     OPERAND($$00) \
     OPERAND($$08) \
     OPERAND($$10) \
@@ -85,8 +91,6 @@ typedef enum {
     OPERAND($$28) \
     OPERAND($$30) \
     OPERAND($$38) \
-    OPERAND($a8) \
-    OPERAND($AF) \
     OPERAND($0) \
     OPERAND($1) \
     OPERAND($2) \
@@ -102,8 +106,8 @@ typedef enum {
 
 typedef struct {
     operation_name name;
-    uint8_t bytes;
-    uint8_t cycles;
+    u8 bytes;
+    u8 cycles;
     operand_name operand1;
     operand_name operand2;
 } operation;
