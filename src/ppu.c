@@ -21,57 +21,138 @@ static u8 vram[MEM_EXT_RAM - MEM_VRAM] = {};
 //    }
 //}
 
+inline static u8 vram_read(u8 const *vram, u16 address) {
+   GB_ASSERT(MEM_VRAM <= address && address < MEM_EXT_RAM, "VRAM out of range read address");
+
+   return vram[address - MEM_VRAM];
+}
+
 inline static lcd_status set_mode(lcd_status stat, ppu_mode mode) {
     return (stat & ~LCD_STATUS_PPU_MODE_MASK) | (mode & LCD_STATUS_PPU_MODE_MASK);
 }
 
+inline static u16 calculate_tile_address(lcd_control lcdc, u8 tile_index, u8 tile_y) {
+    // TODO Y scroll
+
+    u16 const block_start = (lcdc & LCD_CONTROL_BG_WIN_TILE_BANK)
+                          ? VRAM_TILE_DATA1
+                          : VRAM_TILE_DATA0;
+
+    u16 const tile_offset = (u16)tile_index * 16u;
+    u16 const line_offset = (u16)(tile_y & 0x07) * 2u;
+
+    return block_start + tile_offset + line_offset;
+}
+
 ppu ppu_init() {
     u8 *it = vram;
+    u8 *end = vram + (VRAM_TILE_DATA1 - MEM_VRAM);
 
-    // Fake tile0
-    *it     = 0b11110000; *(++it) = 0b00001111;
-    *(++it) = 0b11110000; *(++it) = 0b00001111; 
-    *(++it) = 0b11110000; *(++it) = 0b00001111; 
-    *(++it) = 0b11110000; *(++it) = 0b00001111; 
-    *(++it) = 0b11110000; *(++it) = 0b11110000;
-    *(++it) = 0b11110000; *(++it) = 0b11110000; 
-    *(++it) = 0b11110000; *(++it) = 0b11110000;
-    *(++it) = 0b11110000; *(++it) = 0b11110000; 
+    while (it != end) {
+        // Fake tile0
+        *it     = 0b00000000; *(++it) = 0b00000000;
+        *(++it) = 0b00100100; *(++it) = 0b00000000; 
+        *(++it) = 0b01011010; *(++it) = 0b00000000; 
+        *(++it) = 0b01011010; *(++it) = 0b00000000; 
+        *(++it) = 0b01011010; *(++it) = 0b00000000;
+        *(++it) = 0b01011010; *(++it) = 0b00000000; 
+        *(++it) = 0b00100100; *(++it) = 0b00000000;
+        *(++it) = 0b00000000; *(++it) = 0b00000000; 
 
-    // Fake tile1
-    *(++it) = 0b00000000; *(++it) = 0b00000000;
-    *(++it) = 0b00000000; *(++it) = 0b01010100; 
-    *(++it) = 0b00000000; *(++it) = 0b01110100; 
-    *(++it) = 0b00000000; *(++it) = 0b01010100; 
-    *(++it) = 0b00000000; *(++it) = 0b00000000; 
-    *(++it) = 0b00101000; *(++it) = 0b00000000;
-    *(++it) = 0b10000010; *(++it) = 0b00000000; 
-    *(++it) = 0b11111110; *(++it) = 0b00000000;
+        *(++it) = 0b00000000; *(++it) = 0b00000000;
+        *(++it) = 0b00000000; *(++it) = 0b00100100; 
+        *(++it) = 0b00000000; *(++it) = 0b01011010; 
+        *(++it) = 0b00000000; *(++it) = 0b01011010; 
+        *(++it) = 0b00000000; *(++it) = 0b01011010;
+        *(++it) = 0b00000000; *(++it) = 0b01011010; 
+        *(++it) = 0b00000000; *(++it) = 0b00100100;
+        *(++it) = 0b00000000; *(++it) = 0b00000000; 
+        ++it;
+    }
 
-    u8 *idx = vram + (VRAM_TILE_MAP0 - MEM_VRAM);
-    u8 *end = vram + (VRAM_TILE_MAP1 - MEM_VRAM);
-    while (idx != end) {
-        *(idx++) = 0;
-        *(idx++) = 1;
+    end = vram + (VRAM_TILE_DATA2 - MEM_VRAM);
+
+    while (it != end) {
+        // Fake tile0
+        *it     = 0b00000000; *(++it) = 0b00000000;
+        *(++it) = 0b00100110; *(++it) = 0b00000000; 
+        *(++it) = 0b01010010; *(++it) = 0b00000000; 
+        *(++it) = 0b01010010; *(++it) = 0b00000000; 
+        *(++it) = 0b01010010; *(++it) = 0b00000000;
+        *(++it) = 0b01010010; *(++it) = 0b00000000; 
+        *(++it) = 0b00100010; *(++it) = 0b00000000;
+        *(++it) = 0b00000000; *(++it) = 0b00000000; 
+
+        *(++it) = 0b00000000; *(++it) = 0b00000000;
+        *(++it) = 0b00000000; *(++it) = 0b00100110; 
+        *(++it) = 0b00000000; *(++it) = 0b01010010; 
+        *(++it) = 0b00000000; *(++it) = 0b01010010; 
+        *(++it) = 0b00000000; *(++it) = 0b01010010;
+        *(++it) = 0b00000000; *(++it) = 0b01010010; 
+        *(++it) = 0b00000000; *(++it) = 0b00100010;
+        *(++it) = 0b00000000; *(++it) = 0b00000000; 
+        ++it;
+    }
+
+    end = vram + (VRAM_TILE_MAP0 - MEM_VRAM);
+
+    while (it != end) {
+        *it     = 0b00000000; *(++it) = 0b00000000;
+        *(++it) = 0b00100110; *(++it) = 0b00000000; 
+        *(++it) = 0b01010010; *(++it) = 0b00000000; 
+        *(++it) = 0b01010110; *(++it) = 0b00000000; 
+        *(++it) = 0b01010100; *(++it) = 0b00000000;
+        *(++it) = 0b01010100; *(++it) = 0b00000000; 
+        *(++it) = 0b00100110; *(++it) = 0b00000000;
+        *(++it) = 0b00000000; *(++it) = 0b00000000; 
+
+        *(++it) = 0b00000000; *(++it) = 0b00000000;
+        *(++it) = 0b00000000; *(++it) = 0b00100110; 
+        *(++it) = 0b00000000; *(++it) = 0b01010010; 
+        *(++it) = 0b00000000; *(++it) = 0b01010110; 
+        *(++it) = 0b00000000; *(++it) = 0b01010100;
+        *(++it) = 0b00000000; *(++it) = 0b01010100; 
+        *(++it) = 0b00000000; *(++it) = 0b00100110;
+        *(++it) = 0b00000000; *(++it) = 0b00000000; 
+        ++it;
+    }
+
+    end = vram + (VRAM_END - MEM_VRAM);
+
+    while (it != end) {
+        *(it++) = 0;
+        *(it++) = 1;
+        *(it++) = 128;
+        *(it++) = 129;
     }
 
     return (ppu){
-        .lcdc = LCD_CONTROL_BG_WIN_TILE_BANK, // To use bank 0
-        .stat = set_mode(LCD_STATUS_NULL, PPU_MODE_DRAWING),
+        // Documented to power up with 0x91
+        .lcdc = LCD_CONTROL_LCD_PPU_ENABLE
+              | LCD_CONTROL_WIN_TILE_MAP_BANK
+              | LCD_CONTROL_BG_WIN_PRIORITY,
+
+        // Documented to power up with 0x81 (DMG0) and 0x85 (DMG)
+        .stat = LCD_STATUS_LYC_EQ_LY_INTERRUPT
+              | LCD_STATUS_COINCIDENCE
+              | (LCD_STATUS_PPU_MODE_MASK & PPU_MODE_V_BLANK),
     };
 }
 
 void ppu_cycle(ppu *self, lcd* display) {
     static const u32 scanline_cycle_count = 228;
+
+    self->scanline_cycle += 1;
+
     switch (self->stat & LCD_STATUS_PPU_MODE_MASK) {
         case PPU_MODE_H_BLANK: {
             if (self->scanline_cycle >= scanline_cycle_count) {
                 if (++(self->ly) >= LCD_HEIGHT) {
                     self->stat = set_mode(self->stat, PPU_MODE_V_BLANK);
-                    GB_INFO("HBLANK -> VBLANK");
+                    // GB_INFO("HBLANK -> VBLANK");
                 } else {
                     self->stat = set_mode(self->stat, PPU_MODE_OAM_SCAN);
-                    GB_INFO("HBLANK -> OAM");
+                    // GB_INFO("HBLANK -> OAM");
                 }
                 self->lx = 0;
                 self->scanline_cycle = 0;
@@ -83,7 +164,7 @@ void ppu_cycle(ppu *self, lcd* display) {
                     if (++(self->ly) >= LCD_HEIGHT + 10) {
                         self->ly = 0;
                         self->stat = set_mode(self->stat, PPU_MODE_OAM_SCAN);
-                        GB_INFO("VBLANK -> OAM");
+                        // GB_INFO("VBLANK -> OAM");
                     }
                     self->scanline_cycle = 0;
             }
@@ -95,56 +176,50 @@ void ppu_cycle(ppu *self, lcd* display) {
                 self->stat = set_mode(self->stat, PPU_MODE_DRAWING);
                 // TODO Clear FIFOs
                 self->background_pixels = (fifo){};
-                GB_INFO("OAM -> DRAW");
+                // GB_INFO("OAM -> DRAW");
             }
         } break;
 
         case PPU_MODE_DRAWING: {
             if (self->lx == LCD_WIDTH) {
                 self->stat = set_mode(self->stat, PPU_MODE_H_BLANK);
-                GB_INFO("DRAW -> HBLANK");
+                // GB_INFO("DRAW -> HBLANK");
                 break;
             }
             
             fifo *bg = &self->background_pixels;
             switch(bg->step) {
                 case 0: {
-                    // TODO banking and scrolling
-                    const u16 tile_x = self->lx / 8;
-                    const u16 tile_y = self->ly / 8;
-                    const u16 address = VRAM_TILE_MAP0 + ((tile_x + (TILE_MAP_WIDTH * tile_y)) & 0x03ff);
-                    bg->tile_index = vram[address - MEM_VRAM];
+                    u16 const x = ((u16)bg->tile_x + (u16)self->scx / 8) & 0x001f;
+                    bg->tile_y  = (u16)(self->ly + self->scy) & 0xFF;
+
+                    u16 const address = VRAM_TILE_MAP0 + ((x + bg->tile_y * TILE_MAP_WIDTH) & 0x03FF);
+                    bg->tile_index = vram_read(vram, address);
                     bg->step += 1;
                 } break;
 
                 case 1: {
-                    // TODO banking and scrolling
-                    const u16 tile_offset = (u16)bg->tile_index * 16u;
-                    const u16 line_offset = 2u * ((u16)self->ly & 0x07);
-                    const u16 address = VRAM_TILE_DATA0 + tile_offset + line_offset;
-                    bg->tile_low = vram[address - MEM_VRAM];
+                    bg->tile_low = vram_read(vram, calculate_tile_address(self->lcdc, bg->tile_index, bg->tile_y));
                     bg->step += 1;
                 } break;
 
                 case 2: {
-                    // TODO banking and scrolling
-                    const u16 tile_offset = (u16)bg->tile_index * 16u;
-                    const u16 line_offset = 2u * ((u16)self->ly & 0x07);
-                    const u16 address = VRAM_TILE_DATA0 + tile_offset + line_offset + 1;
-                    bg->tile_high = vram[address - MEM_VRAM];
+                    bg->tile_high = vram_read(vram, calculate_tile_address(self->lcdc, bg->tile_index, bg->tile_y) + 1);
                     bg->step += 1;
                 } break;
 
-                case 3: {
+                case 3: bg->step += 1; break; // Sleep
+
+                case 4: {
                     if (bg->size > 0) break; // BG fetcher waits for fifo to be empty
 
-                    u8 lsb = bg->tile_low;
-                    u8 msb = bg->tile_high;
+                    u8 const low = bg->tile_low;
+                    u8 const high = bg->tile_high;
 
                     for (i8 bit = 7; bit > -1; --bit) {
-                        u8 msb_bit = msb >> bit & 0x1;
-                        u8 lsb_bit = lsb >> bit & 0x1;
-                        u8 color = (msb_bit << 1) | lsb_bit;
+                        u8 const msb_bit = high >> bit & 0x01;
+                        u8 const lsb_bit = low  >> bit & 0x01;
+                        u8 const color = (msb_bit << 1) | lsb_bit;
 
                         // FIFO push
                         bg->pixels[(bg->first + bg->size) & 0x0F] = (pixel){ .color_id = color };
@@ -158,28 +233,31 @@ void ppu_cycle(ppu *self, lcd* display) {
 
             // put pixel to lcd
             if (bg->size) {
+                if (self->lx == 0) {
+                    u8 const discarded_pixels = self->scx & 0x07;
+                    bg->first = (bg->first + discarded_pixels) & 0x0F;
+                    bg->size -= discarded_pixels;
+                }
                 // FIFO_POP
-                const u8 color_id = bg->pixels[bg->first].color_id;
-
-                GB_ASSERT(color_id < 4, "FIFO color id out of range");
-
+                u8 const color_id = bg->pixels[bg->first].color_id;
                 bg->first = (bg->first + 1) & 0x0F;
                 bg->size  -= 1;
 
+                GB_ASSERT(color_id < 4, "FIFO color id out of range");
+
+
                 // TODO Proper palettes
-                static const u32 palette[4] = {
+                static u32 const palette[4] = {
                     0x081820FF,
                     0x346856FF,
                     0x88C070FF,
                     0xE0F8D0FF
                 };
 
-                GB_INFO("Putting pixel %d %d", self->lx, self->ly);
+                // GB_INFO("Putting pixel %d %d", self->lx, self->ly);
                 display->framebuffer[self->lx + (self->ly * LCD_WIDTH)] = palette[color_id];
                 self->lx += 1;
             }
         } break;
     }
-
-    self->scanline_cycle += 1;
 }

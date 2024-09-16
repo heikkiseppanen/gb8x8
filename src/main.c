@@ -7,6 +7,8 @@
 
 #include "ppu.h"
 
+#include "math.h"
+
 const char *vert_source = 
 "#version 430                                                                \n"
 "                                                                            \n"
@@ -70,7 +72,7 @@ int main() {
         glfwWindowHint(GLFW_REFRESH_RATE, video_mode->refreshRate);
     }
 
-    window = glfwCreateWindow(LCD_WIDTH * 4, LCD_HEIGHT * 4, "gb8x8", NULL, NULL);
+    window = glfwCreateWindow(LCD_WIDTH * 2, LCD_HEIGHT * 2, "gb8x8", NULL, NULL);
     if (!window) {
         goto error;
     }
@@ -81,7 +83,10 @@ int main() {
         goto error;
     }
 
-    ppu picture_processing_unit = ppu_init();
+    ppu ppu = ppu_init();
+
+    ppu.scx = 0;
+    ppu.scy = 5;
 
     lcd display = {
         .shader  = shader_create(vert_source, frag_source),
@@ -94,6 +99,7 @@ int main() {
         }
     }
 
+    u8 base_scy = 0;
     // Application loop
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -102,13 +108,35 @@ int main() {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
-        for (u32 cycle = 0; cycle < 35112; ++cycle) { // Approx 60fps 
-            ppu_cycle(&picture_processing_unit, &display);
+        //for (u32 cycle = 0; cycle < 35112; ++cycle) { // Approx 60fps 
+        //    ppu_cycle(&picture_processing_unit, &display);
+        //}
+
+        while ((ppu.stat & LCD_STATUS_PPU_MODE_MASK) != PPU_MODE_V_BLANK) { // Approx 60fps 
+            ppu_cycle(&ppu, &display);
+            if (ppu.scanline_cycle == 0) {
+                ppu.scx = (u8)(8 * sinf(((f32)ppu.ly * 0.01f + glfwGetTime()) * 4.0f));
+            }
+            if ((ppu.lx & 0x07)) {
+                ppu.scy = base_scy / 16 + (u8)(16 * cosf(ppu.lx * 0.08 + glfwGetTime()) * 1.3f);
+            }
         }
 
         texture_set_sub_image(display.texture, 0,0, LCD_WIDTH, LCD_HEIGHT, display.framebuffer);
 
         draw_quad(display.texture, 0.0f, 0.0, 2.0f, 2.0f);
+
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            ppu.lcdc |= LCD_CONTROL_BG_WIN_TILE_BANK;
+        } else {
+            ppu.lcdc &= ~LCD_CONTROL_BG_WIN_TILE_BANK;
+        }
+
+        while ((ppu.stat & LCD_STATUS_PPU_MODE_MASK) == PPU_MODE_V_BLANK) { // Approx 60fps 
+            ppu_cycle(&ppu, &display);
+        }
+
+        ++base_scy;
 
         glfwSwapBuffers(window);
     }

@@ -17,6 +17,7 @@
 #define VRAM_TILE_DATA2          0x9000
 #define VRAM_TILE_MAP0           0x9800
 #define VRAM_TILE_MAP1           0x9C00
+#define VRAM_END                 MEM_EXT_RAM
 
 #define TILE_MAP_WIDTH           32
 #define TILE_MAP_HEIGHT          32
