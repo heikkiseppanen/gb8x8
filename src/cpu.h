@@ -25,10 +25,10 @@ typedef struct {
 #define SET_N(AF) AF->hl.lo |= 0b01000000
 #define SET_H(AF) AF->hl.lo |= 0b00100000
 #define SET_C(AF) AF->hl.lo |= 0b00010000
-#define CHECK_Z(AF) AF->hl.lo & 0b10000000 != 0
-#define CHECK_N(AF) AF->hl.lo & 0b01000000 != 0
-#define CHECK_H(AF) AF->hl.lo & 0b00100000 != 0
-#define CHECK_C(AF) AF->hl.lo & 0b00010000 != 0
+#define CHECK_Z(AF) (AF->hl.lo & 0b10000000) != 0
+#define CHECK_N(AF) (AF->hl.lo & 0b01000000) != 0
+#define CHECK_H(AF) (AF->hl.lo & 0b00100000) != 0
+#define CHECK_C(AF) (AF->hl.lo & 0b00010000) != 0
 #define RESET_Z(AF) AF->hl.lo &= 0b01111111
 #define RESET_N(AF) AF->hl.lo &= 0b10111111
 #define RESET_H(AF) AF->hl.lo &= 0b11011111

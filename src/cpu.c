@@ -13,9 +13,9 @@ u8 read_memory() {
     return *buffer;
 }
 
-void adc(reg *af, u8 val) {
+void adc(reg *af, u8 op1, u8 op2) {
     RESET_N(af);
-    u16 n = af->hl.hi + val + CHECK_C(af);
+    u16 n = op1 + op2 + (CHECK_C(af));
 
     if (n == 0)
         SET_Z(af);
@@ -40,12 +40,41 @@ void add(reg *af, u8 val) {
 
 //get the byte pointed to by the register
 u8 get_byte(reg r) {
-    return *(u16 *)r.r;
+    return *((u16 *)r.r);
+}
+
+u8 *get_r8_register(operand_name name, registers *regs) {
+    switch (name) {
+        case $A:
+            return regs->AF.hl.hi;
+        case $B:
+            return regs->BC.hl.hi;
+        case $C:
+            return regs->BC.hl.lo;
+        case $D:
+            return regs->DE.hl.hi;
+        case $E:
+            return regs->DE.hl.lo;
+        case $H:
+            return regs->HL.hl.hi;
+        case $L:
+            return regs->HL.hl.lo;
+        default:
+            return 0;
+    }
+}
+
+u8 get_operand(operand_name name, registers *regs) {
+    if (name == $HL)
+        return get_byte(regs->HL);
+    else if (name > $L)
+        return read_memory();
+    else
+        return get_r8_register(name, regs);
 }
 
 u8 execute_operation(operation *operations, registers *regs, operation op) {
-    u8 first_byte;
-    u8 second_byte;
+    u8 cycles = op.cycles;
 
     if (op.name == NOP)
         return 1;
@@ -53,28 +82,21 @@ u8 execute_operation(operation *operations, registers *regs, operation op) {
         for(;;);
     }
 
-    if (op.bytes > 1)
-        first_byte = read_memory();
-    if (op.bytes > 2)
-        second_byte = read_memory();
-    
+    u8 op1 = get_operand(op.operand1, regs);
+    u8 op2 = get_operand(op.operand2, regs);
+
     switch (op.name) {
-        case ADC: 
-            if (op.operand2 == $HL)
-                adc(&regs->AF, get_byte(regs->HL));
-            else if (op.operand2 > $L)
-                adc(&regs->AF, first_byte);
-            else
-                adc(&regs->AF, ((reg *)regs + op.operand1)->r);
-            break;
+    case ADC:
+        adc(&regs->AF, op1, op2);
+        break;
+        default:
+        break;
     }
 
-    (void)first_byte;
-    (void)second_byte;
     (void)operations;
     (void)regs;
 
-    return 1 + (op.bytes - 1);
+    return cycles;
 }
 
 void cpu(void) {
