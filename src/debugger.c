@@ -5,15 +5,23 @@
 
 static void display_instructions(uint8_t *buffer, operation *ops) {
     uint8_t i = 0;
+    static const char *OPERAND_NAMES[] = {
+        FOREACH_OPERAND(GENERATE_STRING)
+    };
+
+    static const char *OP_NAMES[] = {
+        FOREACH_OP(GENERATE_STRING)
+    };
+
     while(i < 16) {
         operation op = ops[*buffer];
 
-        if (op.operand2[0])
-            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s\t%s, %s", i, GB_TERM_RED, op.name, op.operand1, op.operand2);
-        else if (op.operand1[0])
-            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s\t%s", i, GB_TERM_RED, op.name, op.operand1);
+        if (op.operand2 != NUL)
+            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s\t%s, %s%s", i, GB_TERM_RED, OP_NAMES[op.name], OPERAND_NAMES[op.operand1], OPERAND_NAMES[op.operand2], GB_TERM_RESET);
+        else if (op.operand1 != NUL)
+            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s\t%s%s", i, GB_TERM_RED, OP_NAMES[op.name], OPERAND_NAMES[op.operand1], GB_TERM_RESET);
         else
-            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s", i, GB_TERM_RED, op.name);
+            GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s%s", i, GB_TERM_RED, OP_NAMES[op.name], GB_TERM_RESET);
 
         for (int byte_count = op.bytes; byte_count; byte_count--)
             buffer++;
