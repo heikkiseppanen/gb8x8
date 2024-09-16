@@ -14,6 +14,7 @@ u8 read_memory() {
 }
 
 void adc(reg *af, u8 val) {
+    RESET_N(af);
     u16 n = af->hl.hi + val + CHECK_C(af);
 
     if (n == 0)
