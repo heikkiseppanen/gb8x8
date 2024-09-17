@@ -34,12 +34,20 @@ inline static lcd_status set_mode(lcd_status stat, ppu_mode mode) {
 inline static u16 calculate_tile_address(lcd_control lcdc, u8 tile_index, u8 tile_y) {
     // TODO Y scroll
 
-    u16 const block_start = (lcdc & LCD_CONTROL_BG_WIN_TILE_BANK)
-                          ? VRAM_TILE_DATA1
-                          : VRAM_TILE_DATA0;
+    u16 block_start;
+    u16 tile_offset;
 
-    u16 const tile_offset = (u16)tile_index * 16u;
-    u16 const line_offset = (u16)(tile_y & 0x07) * 2u;
+    if (lcdc & LCD_CONTROL_BG_WIN_TILE_BANK) {
+        block_start = VRAM_TILE_DATA0;
+        tile_offset = (u16)(tile_index) * 16u;
+    } else {
+        block_start = VRAM_TILE_DATA1;
+        tile_offset = tile_index < 128u
+                    ? (u16)(tile_index + 128u) * 16u
+                    : (u16)(tile_index - 128u) * 16u;
+    }
+
+    u16 const line_offset = (u16)(tile_y % 8) * 2u;
 
     return block_start + tile_offset + line_offset;
 }

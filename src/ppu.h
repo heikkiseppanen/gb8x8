@@ -33,7 +33,7 @@ typedef enum {
     LCD_CONTROL_OBJ_ENABLE        = 1u << 1u, // Disabled        Enabled
     LCD_CONTROL_OBJ_SIZE          = 1u << 2u, // 8x8             8x16
     LCD_CONTROL_BG_TILE_MAP_BANK  = 1u << 3u, // VRAM_TILE_MAP0  VRAM_TILE_MAP1
-    LCD_CONTROL_BG_WIN_TILE_BANK  = 1u << 4u, // VRAM_TILE_DATA0 VRAM_TILE_DATA1
+    LCD_CONTROL_BG_WIN_TILE_BANK  = 1u << 4u, // VRAM_TILE_DATA1 VRAM_TILE_DATA0
     LCD_CONTROL_WIN_ENABLE        = 1u << 5u, // OFF             ON
     LCD_CONTROL_WIN_TILE_MAP_BANK = 1u << 6u, // 9800-0BFF       9C00-9FFF
     LCD_CONTROL_LCD_PPU_ENABLE    = 1u << 7u, // OFF             ON
