@@ -57,22 +57,18 @@ typedef enum {
     FOREACH_OP(GENERATE_ENUM)
 } operation_name;
 
-//OPERAND FILLER is to fill the gap between a and b registers so we can  
-//access all the registers using (reg *)registers + enum
-
 #define FOREACH_OPERAND(OPERAND) \
     OPERAND($A) \
-    OPERAND($FILLER) \
     OPERAND($B) \
     OPERAND($C) \
     OPERAND($D) \
     OPERAND($E) \
     OPERAND($H) \
     OPERAND($L) \
-    OPERAND($AF) \
     OPERAND($BC) \
     OPERAND($DE) \
     OPERAND($HL) \
+    OPERAND($AF) \
     OPERAND($SP) \
     OPERAND(NUL) \
     OPERAND($NZ) \
