@@ -86,6 +86,18 @@ void ccf(reg *af) {
     af->hl.lo ^= 0b00010000;
 }
 
+void cp(reg *af, u8 op1, u8 op2) {
+    u8 n = op1 - op2;
+
+    SET_N(af);
+    if (n == 0)
+        SET_Z(af);
+    if (op2 > op1 || (n & 0b11110000) != (op1 & 0b11110000))
+        SET_H(af);
+    if (op2 > op1)
+        SET_C(af);
+}
+
 u16 get_8b_register(operand_name name, registers *regs) {
     switch (name) {
         case $A:
@@ -177,6 +189,7 @@ u8 execute_operation(registers *regs, operation op) {
         case BIT: bit(&regs->AF, op1, op2); break;
         case CALL: /*TODO*/ break;
         case CCF: ccf(&regs->AF); break;
+        case CP: cp(&regs->AF, op1, op2); break;
         default: break;
     }
     return cycles;
