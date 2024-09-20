@@ -4,6 +4,8 @@
 
 #include "operations.h"
 
+#define INTERRUPT_INTERVAL 100
+
 typedef union {
     u16 r;
     struct {

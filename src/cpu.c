@@ -176,7 +176,7 @@ void cpu(void) {
         #endif
 
         if (cycle_counter == 0) {
-            cycle_counter += 100;
+            cycle_counter += INTERRUPT_INTERVAL;
             //check interrupts
             if (interrupt)
                 break;
