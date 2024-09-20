@@ -76,8 +76,14 @@ void and(reg *af, u8 op1, u8 op2) {
 void bit(reg *af, u8 op1, u8 op2) {
     RESET_N(af);
     SET_H(af);
-    if ((op2 >> op1) & 0x01 == 0)
+    if (((op2 >> op1) & 0x01) == 0)
         SET_Z(af);
+}
+
+void ccf(reg *af) {
+    RESET_N(af);
+    RESET_H(af);
+    af->hl.lo ^= 0b00010000;
 }
 
 u16 get_8b_register(operand_name name, registers *regs) {
@@ -117,6 +123,7 @@ u16 get_16b_register(operand_name name, registers *regs) {
 //get the byte pointed to by the register
 //TODO
 u8 get_byte(operand_name name, registers *regs) {
+    (void)regs;
     switch (name) {
         // case $CBP:
         //     return read_memory_from_address(regs->BC.hl.lo);
@@ -168,6 +175,8 @@ u8 execute_operation(registers *regs, operation op) {
             break;
         case AND: and(&regs->AF, op1, op2); break;
         case BIT: bit(&regs->AF, op1, op2); break;
+        case CALL: /*TODO*/ break;
+        case CCF: ccf(&regs->AF); break;
         default: break;
     }
     return cycles;
