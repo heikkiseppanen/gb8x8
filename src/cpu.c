@@ -98,6 +98,30 @@ void cp(reg *af, u8 op1, u8 op2) {
         SET_C(af);
 }
 
+void dec(registers *regs, operand_name name) {
+    u16 n = 0;
+    switch (name) {
+        case $A: n = --regs->AF.hl.hi; break;
+        case $B: n = --regs->BC.hl.hi; break;
+        case $C: n = --regs->BC.hl.lo; break;
+        case $D: n = --regs->DE.hl.hi; break;
+        case $E: n = --regs->DE.hl.lo; break;
+        case $H: n = --regs->HL.hl.hi; break;
+        case $L: n = --regs->HL.hl.lo; break;
+        case $BC: n = --regs->BC.r; break;
+        case $DE: n = --regs->DE.r; break;
+        case $HL: n = --regs->HL.r; break;
+        case $SP: n = --regs->HL.r; break;
+        case $HLBP: /*TODO get byte and dec*/ break;
+        default: break;
+    }
+    if (((n + 1) & 0b1111) == 0)
+        SET_H((&regs->AF));
+    if (n == 0)
+        SET_Z((&regs->AF));
+    SET_N((&regs->AF));
+}
+
 u16 get_8b_register(operand_name name, registers *regs) {
     switch (name) {
         case $A:
@@ -125,8 +149,10 @@ u16 get_16b_register(operand_name name, registers *regs) {
             return regs->BC.r;
         case $DE:
             return regs->DE.r;
-        case $H:
-            return regs->HL.hl.lo;
+        case $HL:
+            return regs->HL.r;
+        case $SP:
+            return regs->SP.r;
         default:
             return 0;
     }
@@ -190,6 +216,9 @@ u8 execute_operation(registers *regs, operation op) {
         case CALL: /*TODO*/ break;
         case CCF: ccf(&regs->AF); break;
         case CP: cp(&regs->AF, op1, op2); break;
+        case CPL: /*TODO*/ break;
+        case DAA: /*TODO*/ break;
+        case DEC: dec(regs, op.operand1); break;
         default: break;
     }
     return cycles;
