@@ -73,6 +73,13 @@ void and(reg *af, u8 op1, u8 op2) {
         SET_Z(af);
 }
 
+void bit(reg *af, u8 op1, u8 op2) {
+    RESET_N(af);
+    SET_H(af);
+    if ((op2 >> op1) & 0x01 == 0)
+        SET_Z(af);
+}
+
 u16 get_8b_register(operand_name name, registers *regs) {
     switch (name) {
         case $A:
@@ -160,7 +167,7 @@ u8 execute_operation(registers *regs, operation op) {
                 add_signed(&regs->AF, &regs->SP, op1, op2);
             break;
         case AND: and(&regs->AF, op1, op2); break;
-
+        case BIT: bit(&regs->AF, op1, op2); break;
         default: break;
     }
     return cycles;
