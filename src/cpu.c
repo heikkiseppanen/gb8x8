@@ -63,11 +63,14 @@ void add_signed(reg *af, reg *sp, u16 op1, i8 op2) {
     sp->r = n;
 }
 
-//get the byte pointed to by the register
-//TODO
-u8 get_byte(reg r) {
-    // return read_memory_from_address(r.r);
-    return 0;
+void and(reg *af, u8 op1, u8 op2) {
+    af->hl.hi = op1 | op2;
+
+    RESET_N(af);
+    RESET_C(af);
+    SET_H(af);
+    if (af->hl.hi == 0)
+        SET_Z(af);
 }
 
 u16 get_8b_register(operand_name name, registers *regs) {
@@ -104,14 +107,32 @@ u16 get_16b_register(operand_name name, registers *regs) {
     }
 }
 
-//TODO HL,[HL],[HLI],[HLD] ?_?
+//get the byte pointed to by the register
+//TODO
+u8 get_byte(operand_name name, registers *regs) {
+    switch (name) {
+        // case $CBP:
+        //     return read_memory_from_address(regs->BC.hl.lo);
+        // case $BCBP:
+        //     return read_memory_from_address(regs->BC.r);
+        // case $DEBP:
+        //     return read_memory_from_address(regs->DE.r);
+        // case $HLBP:
+        //     return read_memory_from_address(regs->HL.r);
+        default:
+            return 0;
+    }
+}
+
 u16 get_operand(operand_name name, registers *regs) {
+    if (name == NUL)
+        return 0;
     if (name <= $L)
         return get_8b_register(name, regs);
     if (name <= $HL)
         return get_16b_register(name, regs);
-    else if (name == $HL)
-        return get_byte(regs->HL);
+    if (name <= $HLBP)
+        return get_byte(name, regs);
     else
         return read_memory();
 }
@@ -128,31 +149,20 @@ u8 execute_operation(registers *regs, operation op) {
     u16 op1 = get_operand(op.operand1, regs);
     u16 op2 = get_operand(op.operand2, regs);
 
-    // ADD A,r8
-    // ADD A,[HL]
-    // ADD A,n8
-    // ADD HL,r16
-    // ADD HL,SP
-    // ADD SP,e8
-
-    // reg, u8
-    // hl, u16
-
     switch (op.name) {
-    case ADC: adc(&regs->AF, op1, op2); break;
-    case ADD:
-        if (op.operand1 == $A)
-            add_8b(&regs->AF, op1, op2);
-        else if (op.operand1 == $HL)
-            add_16b(&regs->AF, &regs->HL, op1, op2);
-        else
-            add_signed(&regs->AF, &regs->SP, op1, op2);
-        break;
+        case ADC: adc(&regs->AF, op1, op2); break;
+        case ADD:
+            if (op.operand1 == $A)
+                add_8b(&regs->AF, op1, op2);
+            else if (op.operand1 == $HL)
+                add_16b(&regs->AF, &regs->HL, op1, op2);
+            else
+                add_signed(&regs->AF, &regs->SP, op1, op2);
+            break;
+        case AND: and(&regs->AF, op1, op2); break;
+
         default: break;
     }
-
-    (void)regs;
-
     return cycles;
 }
 
