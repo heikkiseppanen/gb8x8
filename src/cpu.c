@@ -201,16 +201,45 @@ void or(reg *af, u8 op2) {
 
 void res(registers *regs, u8 bit, operand_name name) {
     switch (name) {
-        case $A: regs->AF.hl.hi ^ (0x1 << bit); break;
-        case $B: regs->BC.hl.hi ^ (0x1 << bit); break;
-        case $C: regs->BC.hl.lo ^ (0x1 << bit); break;
-        case $D: regs->DE.hl.hi ^ (0x1 << bit); break;
-        case $E: regs->DE.hl.lo ^ (0x1 << bit); break;
-        case $H: regs->HL.hl.hi ^ (0x1 << bit); break;
-        case $L: regs->HL.hl.lo ^ (0x1 << bit); break;
+        case $A: regs->AF.hl.hi ^= (0x1 << bit); break;
+        case $B: regs->BC.hl.hi ^= (0x1 << bit); break;
+        case $C: regs->BC.hl.lo ^= (0x1 << bit); break;
+        case $D: regs->DE.hl.hi ^= (0x1 << bit); break;
+        case $E: regs->DE.hl.lo ^= (0x1 << bit); break;
+        case $H: regs->HL.hl.hi ^= (0x1 << bit); break;
+        case $L: regs->HL.hl.lo ^= (0x1 << bit); break;
         // case $HLBP: TODO
         default: break;
     }
+}
+
+void rl(registers *regs, operand_name name) {
+    u8 *p;
+    switch (name) {
+        case $A: p = &regs->AF.hl.hi; break;
+        case $B: p = &regs->BC.hl.hi; break;
+        case $C: p = &regs->BC.hl.lo; break;
+        case $D: p = &regs->DE.hl.hi; break;
+        case $E: p = &regs->DE.hl.lo; break;
+        case $H: p = &regs->HL.hl.hi; break;
+        case $L: p = &regs->HL.hl.lo; break;
+        // case $HLBP: TODO
+        default: break;
+    }
+
+    _Bool carry_check = 0;
+    if ((*p) & 0b10000000)
+        carry_check = 1;
+    (*p) <<= 1;
+    (*p) |= CHECK_C((&regs->AF));
+
+    RESET_C((&regs->AF));
+    if (carry_check)
+        SET_C((&regs->AF));
+    if (*p == 0)
+        SET_Z((&regs->AF));
+    SET_N((&regs->AF));
+    SET_H((&regs->AF));
 }
 
 u16 get_8b_register(operand_name name, registers *regs) {
@@ -316,6 +345,10 @@ u8 execute_operation(registers *regs, operation op) {
         case POP: /*TODO*/ break;
         case PUSH: /*TODO*/ break;
         case RES: res(regs, op1, op.operand2); break;
+        case RET: /*TODO*/ break;
+        case RETI: /*TODO*/ break;
+        case RL: /*TODO*/ break;
+        case RLA: /*TODO*/ break;
         default: break;
     }
     return cycles;
@@ -323,15 +356,14 @@ u8 execute_operation(registers *regs, operation op) {
 
 void cpu(void) {
     registers regs = {0};
-    u8 cycle_counter = 100;
-    _Bool interrupt = 0;
+    u8 interrupt_counter = 100;
     operation operations[512];
 
     create_op_table(operations);
 
     while (1) {
         operation op = operations[read_memory()];
-        cycle_counter -= execute_operation(&regs, op);
+        interrupt_counter -= execute_operation(&regs, op);
 
         #ifdef DEBUGGER
         u8 instruction_cycles = 0;
@@ -340,8 +372,10 @@ void cpu(void) {
         instruction_cycles--;
         #endif
 
-        if (cycle_counter == 0) {
-            cycle_counter += INTERRUPT_INTERVAL;
+        if (interrupt_counter == 0) {
+            _Bool interrupt = 0;
+
+            interrupt_counter += INTERRUPT_INTERVAL;
             //check interrupts
             if (interrupt)
                 break;
