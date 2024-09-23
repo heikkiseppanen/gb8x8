@@ -462,7 +462,10 @@ u8 execute_operation(registers *regs, operation op) {
         case RRA: rra(&regs->AF); break;
         case RRC: rrc(regs, op.operand1); break;
         case RRCA: rrca(&regs->AF); break;
-        // case RETI: /*TODO*/ break;
+        case RST: /*TODO*/ break;
+        case SBC: /*TODO NEXT*/ break;
+        case SCF: SET_C((&regs->AF)); break;
+        // case example: /*TODO*/ break;
         default: break;
     }
     return cycles;
