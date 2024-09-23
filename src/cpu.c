@@ -146,6 +146,29 @@ void inc(registers *regs, operand_name name) {
     SET_N((&regs->AF));
 }
 
+void ld(registers *regs, operand_name name, u16 op1, u16 op2) {
+    switch (name) {
+        case $A: regs->AF.hl.hi = op2; break;
+        case $B: regs->BC.hl.hi = op2; break;
+        case $C: regs->BC.hl.lo = op2; break;
+        case $D: regs->DE.hl.hi = op2; break;
+        case $E: regs->DE.hl.lo = op2; break;
+        case $H: regs->HL.hl.hi = op2; break;
+        case $L: regs->HL.hl.lo = op2; break;
+        case $BC: regs->BC.r = op2; break;
+        case $DE: regs->DE.r = op2; break;
+        case $HL: regs->HL.r = op2; break;
+        case $SP: regs->HL.r = op2; break;
+        case $CBP: /*TODO get byte set it*/ break;
+        case $BCBP: /*TODO get byte set it*/ break;
+        case $DEBP: /*TODO get byte set it*/ break;
+        case $HLBP: /*TODO get byte set it*/ break;
+        case $a8: /*TODO get byte set it*/ break;
+        case $a16: /*TODO get byte set it*/ break;
+        default: break;
+    }
+}
+
 u16 get_8b_register(operand_name name, registers *regs) {
     switch (name) {
         case $A: return regs->AF.hl.hi;
@@ -234,6 +257,9 @@ u8 execute_operation(registers *regs, operation op) {
         case EI: /*TODO*/ break;
         case HALT: /*TODO*/ break;
         case INC: inc(regs, op.operand1); break;
+        case JP: /*TODO*/ break;
+        case JR: /*TODO*/ break;
+        case LD: ld(regs, op.operand1, op1, op2); break;
         default: break;
     }
     return cycles;
