@@ -189,6 +189,30 @@ void ld_sp(u16 op1, u16 op2) {
     //*(op1 + 1) = op2 >> 8;
 }
 
+void or(reg *af, u8 op2) {
+    af->hl.hi |= op2;
+
+    if (af->hl.hi == 0)
+        RESET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
+    RESET_C(af);
+}
+
+void res(registers *regs, u8 bit, operand_name name) {
+    switch (name) {
+        case $A: regs->AF.hl.hi ^ (0x1 << bit); break;
+        case $B: regs->BC.hl.hi ^ (0x1 << bit); break;
+        case $C: regs->BC.hl.lo ^ (0x1 << bit); break;
+        case $D: regs->DE.hl.hi ^ (0x1 << bit); break;
+        case $E: regs->DE.hl.lo ^ (0x1 << bit); break;
+        case $H: regs->HL.hl.hi ^ (0x1 << bit); break;
+        case $L: regs->HL.hl.lo ^ (0x1 << bit); break;
+        // case $HLBP: TODO
+        default: break;
+    }
+}
+
 u16 get_8b_register(operand_name name, registers *regs) {
     switch (name) {
         case $A: return regs->AF.hl.hi;
@@ -288,6 +312,10 @@ u8 execute_operation(registers *regs, operation op) {
             break;
         case NOP: break;
         case ILL: for(;;); break;
+        case OR: or(&regs->AF, op2); break;
+        case POP: /*TODO*/ break;
+        case PUSH: /*TODO*/ break;
+        case RES: res(regs, op1, op.operand2); break;
         default: break;
     }
     return cycles;
