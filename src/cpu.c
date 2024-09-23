@@ -245,13 +245,6 @@ u16 get_operand(operand_name name, registers *regs) {
 
 u8 execute_operation(registers *regs, operation op) {
     u8 cycles = op.cycles;
-
-    if (op.name == NOP)
-        return 1;
-    else if (op.name == ILL) {
-        for(;;);
-    }
-
     u16 op1 = get_operand(op.operand1, regs);
     u16 op2 = get_operand(op.operand2, regs);
 
@@ -287,6 +280,14 @@ u8 execute_operation(registers *regs, operation op) {
             else
                 ld_sp(op1, op2);
             break;
+        case LDH:
+            // if (op.operand1 == $A)
+            //     regs->AF.hl.hi = 0xFF00 + op2;
+            // else
+            //     memory[0xFF00 + op1] = regs->AF.hl.hi;
+            break;
+        case NOP: break;
+        case ILL: for(;;); break;
         default: break;
     }
     return cycles;
