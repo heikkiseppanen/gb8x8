@@ -165,8 +165,28 @@ void ld(registers *regs, operand_name name, u16 op1, u16 op2) {
         case $HLBP: /*TODO get byte set it*/ break;
         case $a8: /*TODO get byte set it*/ break;
         case $a16: /*TODO get byte set it*/ break;
+        case $HLD: /*TODO get byte set it*/ break;
+        case $HLI: /*TODO get byte set it*/ break;
         default: break;
     }
+}
+
+void ld_signed(registers *regs, i8 n) {
+    RESET_Z((&regs->AF));
+    RESET_N((&regs->AF));
+
+    regs->HL.r = regs->SP.r + n;
+
+    if ((regs->HL.r & 0b1111111111110000) != (regs->SP.r & 0b1111111111110000))
+        SET_H((&regs->AF));
+    if ((regs->HL.r & 0b1111111100000000) != (regs->SP.r & 0b1111111100000000))
+        SET_C((&regs->AF));
+}
+
+void ld_sp(u16 op1, u16 op2) {
+    //TODO
+    //*op1 = op2 & 0xFF;
+    //*(op1 + 1) = op2 >> 8;
 }
 
 u16 get_8b_register(operand_name name, registers *regs) {
@@ -259,7 +279,14 @@ u8 execute_operation(registers *regs, operation op) {
         case INC: inc(regs, op.operand1); break;
         case JP: /*TODO*/ break;
         case JR: /*TODO*/ break;
-        case LD: ld(regs, op.operand1, op1, op2); break;
+        case LD: 
+            if (op.operand2 != $SP)
+                ld(regs, op.operand1, op1, op2);
+            else if (op.operand1 == $HL)
+                ld_signed(regs, 1/*get_byte()*/);
+            else
+                ld_sp(op1, op2);
+            break;
         default: break;
     }
     return cycles;
