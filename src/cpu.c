@@ -147,6 +147,7 @@ void inc(registers *regs, operand_name name) {
 }
 
 void ld(registers *regs, operand_name name, u16 op1, u16 op2) {
+    (void)op1;
     switch (name) {
         case $A: regs->AF.hl.hi = op2; break;
         case $B: regs->BC.hl.hi = op2; break;
@@ -184,6 +185,8 @@ void ld_signed(registers *regs, i8 n) {
 }
 
 void ld_sp(u16 op1, u16 op2) {
+    (void)op1;
+    (void)op2;
     //TODO
     //*op1 = op2 & 0xFF;
     //*(op1 + 1) = op2 >> 8;
@@ -238,8 +241,24 @@ void rl(registers *regs, operand_name name) {
         SET_C((&regs->AF));
     if (*p == 0)
         SET_Z((&regs->AF));
-    SET_N((&regs->AF));
-    SET_H((&regs->AF));
+    RESET_N((&regs->AF));
+    RESET_H((&regs->AF));
+}
+
+void rla(reg *af) {
+    _Bool carry_check = 0;
+    if (af->hl.hi & 0b10000000)
+        carry_check = 1;
+    af->hl.hi <<= 1;
+    af->hl.hi |= CHECK_C(af);
+
+    RESET_C(af);
+    RESET_N(af);
+    RESET_H(af);
+    RESET_Z(af);
+    if (carry_check)
+        SET_C(af);
+    
 }
 
 u16 get_8b_register(operand_name name, registers *regs) {
@@ -347,8 +366,8 @@ u8 execute_operation(registers *regs, operation op) {
         case RES: res(regs, op1, op.operand2); break;
         case RET: /*TODO*/ break;
         case RETI: /*TODO*/ break;
-        case RL: /*TODO*/ break;
-        case RLA: /*TODO*/ break;
+        case RL: rl(regs, op.operand1); break;
+        case RLA: rla(&regs->AF); break;
         default: break;
     }
     return cycles;
