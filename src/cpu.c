@@ -99,7 +99,7 @@ void cp(reg *af, u8 op1, u8 op2) {
 }
 
 void dec(registers *regs, operand_name name) {
-    u16 n = 0;
+    u8 n = 0;
     switch (name) {
         case $A: n = --regs->AF.hl.hi; break;
         case $B: n = --regs->BC.hl.hi; break;
@@ -108,14 +108,38 @@ void dec(registers *regs, operand_name name) {
         case $E: n = --regs->DE.hl.lo; break;
         case $H: n = --regs->HL.hl.hi; break;
         case $L: n = --regs->HL.hl.lo; break;
-        case $BC: n = --regs->BC.r; break;
-        case $DE: n = --regs->DE.r; break;
-        case $HL: n = --regs->HL.r; break;
-        case $SP: n = --regs->HL.r; break;
+        case $BC: --regs->BC.r; return;
+        case $DE: --regs->DE.r; return;
+        case $HL: --regs->HL.r; return;
+        case $SP: --regs->HL.r; return;
         case $HLBP: /*TODO get byte and dec*/ break;
         default: break;
     }
-    if (((n + 1) & 0b1111) == 0)
+    if (((n + 1) & 0b11110000) == (n & 0b11110000))
+        SET_H((&regs->AF));
+    if (n == 0)
+        SET_Z((&regs->AF));
+    SET_N((&regs->AF));
+}
+
+void inc(registers *regs, operand_name name) {
+    u8 n = 0;
+    switch (name) {
+        case $A: n = ++regs->AF.hl.hi; break;
+        case $B: n = ++regs->BC.hl.hi; break;
+        case $C: n = ++regs->BC.hl.lo; break;
+        case $D: n = ++regs->DE.hl.hi; break;
+        case $E: n = ++regs->DE.hl.lo; break;
+        case $H: n = ++regs->HL.hl.hi; break;
+        case $L: n = ++regs->HL.hl.lo; break;
+        case $BC: ++regs->BC.r; return;
+        case $DE: ++regs->DE.r; return;
+        case $HL: ++regs->HL.r; return;
+        case $SP: ++regs->HL.r; return;
+        case $HLBP: /*TODO get byte and inc*/ break;
+        default: break;
+    }
+    if (((n - 1) & 0b11110000) == (n & 0b11110000))
         SET_H((&regs->AF));
     if (n == 0)
         SET_Z((&regs->AF));
@@ -124,37 +148,24 @@ void dec(registers *regs, operand_name name) {
 
 u16 get_8b_register(operand_name name, registers *regs) {
     switch (name) {
-        case $A:
-            return regs->AF.hl.hi;
-        case $B:
-            return regs->BC.hl.hi;
-        case $C:
-            return regs->BC.hl.lo;
-        case $D:
-            return regs->DE.hl.hi;
-        case $E:
-            return regs->DE.hl.lo;
-        case $H:
-            return regs->HL.hl.hi;
-        case $L:
-            return regs->HL.hl.lo;
-        default:
-            return 0;
+        case $A: return regs->AF.hl.hi;
+        case $B: return regs->BC.hl.hi;
+        case $C: return regs->BC.hl.lo;
+        case $D: return regs->DE.hl.hi;
+        case $E: return regs->DE.hl.lo;
+        case $H: return regs->HL.hl.hi;
+        case $L: return regs->HL.hl.lo;
+        default: return 0;
     }
 }
 
 u16 get_16b_register(operand_name name, registers *regs) {
     switch (name) {
-        case $BC:
-            return regs->BC.r;
-        case $DE:
-            return regs->DE.r;
-        case $HL:
-            return regs->HL.r;
-        case $SP:
-            return regs->SP.r;
-        default:
-            return 0;
+        case $BC: return regs->BC.r;
+        case $DE: return regs->DE.r;
+        case $HL: return regs->HL.r;
+        case $SP: return regs->SP.r;
+        default: return 0;
     }
 }
 
@@ -219,6 +230,10 @@ u8 execute_operation(registers *regs, operation op) {
         case CPL: /*TODO*/ break;
         case DAA: /*TODO*/ break;
         case DEC: dec(regs, op.operand1); break;
+        case DI: /*TODO*/ break;
+        case EI: /*TODO*/ break;
+        case HALT: /*TODO*/ break;
+        case INC: inc(regs, op.operand1); break;
         default: break;
     }
     return cycles;
