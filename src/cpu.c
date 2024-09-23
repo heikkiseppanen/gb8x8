@@ -258,7 +258,95 @@ void rla(reg *af) {
     RESET_Z(af);
     if (carry_check)
         SET_C(af);
-    
+}
+
+void rlc(registers *regs, operand_name name) {
+    u8 *p;
+    switch (name) {
+        case $A: p = &regs->AF.hl.hi; break;
+        case $B: p = &regs->BC.hl.hi; break;
+        case $C: p = &regs->BC.hl.lo; break;
+        case $D: p = &regs->DE.hl.hi; break;
+        case $E: p = &regs->DE.hl.lo; break;
+        case $H: p = &regs->HL.hl.hi; break;
+        case $L: p = &regs->HL.hl.lo; break;
+        // case $HLBP: TODO
+        default: break;
+    }
+
+    RESET_C((&regs->AF));
+    if ((*p) & 0b10000000)
+        SET_C((&regs->AF));
+    (*p) <<= 1;
+    if (CHECK_C((&regs->AF)))
+        (*p) |= 1;
+    if (*p == 0)
+        SET_Z((&regs->AF));
+    RESET_N((&regs->AF));
+    RESET_H((&regs->AF));
+}
+
+void rlca(reg *af) {
+    RESET_C(af);
+    if (af->hl.hi & 0b10000000)
+        SET_C(af);
+    af->hl.hi <<= 1;
+    if (CHECK_C(af))
+        af->hl.hi |= 1;
+    RESET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
+}
+
+void rra(reg *af) {
+    _Bool c_is_set = CHECK_C(af);
+    RESET_C(af);
+    if (af->hl.hi & 0b1)
+        SET_C(af);
+    af->hl.hi >>= 1;
+    if (c_is_set)
+        af->hl.hi |= 0b10000000;
+    RESET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
+}
+
+void rrc(registers *regs, operand_name name) {
+    u8 *p;
+    switch (name) {
+        case $A: p = &regs->AF.hl.hi; break;
+        case $B: p = &regs->BC.hl.hi; break;
+        case $C: p = &regs->BC.hl.lo; break;
+        case $D: p = &regs->DE.hl.hi; break;
+        case $E: p = &regs->DE.hl.lo; break;
+        case $H: p = &regs->HL.hl.hi; break;
+        case $L: p = &regs->HL.hl.lo; break;
+        // case $HLBP: TODO
+        default: break;
+    }
+
+    RESET_C((&regs->AF));
+    if ((*p) & 1)
+        SET_C((&regs->AF));
+    (*p) >>= 1;
+    if (CHECK_C((&regs->AF)))
+        (*p) |= 0b10000000;
+    if (*p == 0)
+        SET_Z((&regs->AF));
+    RESET_N((&regs->AF));
+    RESET_H((&regs->AF));
+}
+
+void rrca(reg *af) {
+    RESET_C(af);
+    if (af->hl.hi & 0b1)
+        SET_C(af);
+    af->hl.hi >>= 1;
+    if (CHECK_C(af))
+        af->hl.hi |= 0b10000000;
+    RESET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
 }
 
 u16 get_8b_register(operand_name name, registers *regs) {
@@ -368,6 +456,13 @@ u8 execute_operation(registers *regs, operation op) {
         case RETI: /*TODO*/ break;
         case RL: rl(regs, op.operand1); break;
         case RLA: rla(&regs->AF); break;
+        case RLC: rlc(regs, op.operand1); break;
+        case RLCA: rlca(&regs->AF); break;
+        case RR: /*TODO*/ break;
+        case RRA: rra(&regs->AF); break;
+        case RRC: rrc(regs, op.operand1); break;
+        case RRCA: rrca(&regs->AF); break;
+        // case RETI: /*TODO*/ break;
         default: break;
     }
     return cycles;
