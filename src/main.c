@@ -85,9 +85,6 @@ int main() {
 
     ppu ppu = ppu_init();
 
-    ppu.scx = 0;
-    ppu.scy = 5;
-
     lcd display = {
         .shader  = shader_create(vert_source, frag_source),
         .texture = texture_create(LCD_WIDTH, LCD_HEIGHT),
