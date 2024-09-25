@@ -128,6 +128,12 @@ void cp(reg *af, void *op1, void *op2) {
         SET_C(af);
 }
 
+void cpl(reg *af) {
+    af->hl.hi = ~af->hl.hi;
+    SET_N(af);
+    SET_H(af);
+}
+
 //op1 u8/u16
 void dec(reg *af, void *op1, _Bool is_8bit) {
     --*(u16 *)op1;
@@ -471,7 +477,7 @@ u8 execute_operation(registers *regs, operation op) {
         case CALL: /*TODO*/ break;
         case CCF: ccf(&regs->AF); break;
         case CP: cp(&regs->AF, op1, op2); break;
-        case CPL: /*TODO*/ break;
+        case CPL: cpl(&regs->AF); break;
         case DAA: /*TODO*/ break;
         case DEC: dec(&regs->AF, op1, op.operand1 <= $L); break;
         case DI: /*TODO*/ break;
@@ -523,7 +529,6 @@ u8 execute_operation(registers *regs, operation op) {
         case SUB: sub(&regs->AF, op1, op2); break;
         case SWAP: swap(&regs->AF, op1); break;
         case XOR: xor(&regs->AF, op1, op2); break;
-        // case example: /*TODO*/ break;
         default: break;
     }
     return cycles;
