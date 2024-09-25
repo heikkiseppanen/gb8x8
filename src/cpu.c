@@ -386,6 +386,24 @@ void sub(reg *af, void *op1, void *op2) {
         SET_C(af);
 }
 
+void swap(reg *af, void *op1) {
+    *(u8 *)op1 = (*(u8 *)op1 >> 4) | (*(u8 *)op1 << 4);
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
+    RESET_C(af);
+}
+
+void xor(reg *af, void *op1, void *op2) {
+    *(u8 *)op1 ^= *(u8 *)op2;
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
+    RESET_C(af);
+}
+
 void *get_register(operand_name name, registers *regs) {
     switch (name) {
         case $A: return &regs->AF.hl.hi;
@@ -503,6 +521,8 @@ u8 execute_operation(registers *regs, operation op) {
         case SRL: srl(&regs->AF, op1); break;
         case STOP: /*TODO*/ break;
         case SUB: sub(&regs->AF, op1, op2); break;
+        case SWAP: swap(&regs->AF, op1); break;
+        case XOR: xor(&regs->AF, op1, op2); break;
         // case example: /*TODO*/ break;
         default: break;
     }
