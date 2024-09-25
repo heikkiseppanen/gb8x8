@@ -461,7 +461,6 @@ u8 execute_operation(registers *regs, operation op) {
     void *op1 = get_operand(op.operand1, regs);
     void *op2 = get_operand(op.operand2, regs);
 
-//A = Accumalator
     switch (op.name) {
         case ADC: adc(&regs->AF, op1, op2); break;
         case ADD:
