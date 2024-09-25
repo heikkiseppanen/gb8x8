@@ -9,74 +9,103 @@ u8 debugger(u8 *buffer, registers *regs, operation *ops);
 
 u8 buffer[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-u8 read_memory() {
-    return *buffer;
+void *read_memory() {
+    return buffer;
 }
 
-void adc(reg *af, u8 op1, u8 op2) {
-    u16 n = op1 + op2 + (CHECK_C(af));
+static inline _Bool overflow_check_bit3(u8 start, u8 res) {
+    return (start & 0b11110000) == (res & 0b11110000);
+}
+
+static inline _Bool overflow_check_bit7(u8 start, u8 res) {
+    return res < start;
+}
+
+static inline _Bool overflow_check_bit11(u16 start, u16 res) {
+    return (start & 0b1111000000000000) == (res & 0b1111000000000000);
+}
+
+static inline _Bool overflow_check_bit15(u16 start, u16 res) {
+    return res < start;
+}
+
+static inline void hl_decrement_increment(operand_name name, void *op) {
+    if (name == $HLD)
+        --*(u16 *)op;
+    else if (name == $HLI)
+        ++*(u16 *)op;
+}
+
+//op1 u8, op2 u8
+void adc(reg *af, void *op1, void *op2) {
+    u8 start = *(u8 *)(op1);
+    *(u8 *)(op1) += *(u8 *)(op2) + (CHECK_C(af));
 
     RESET_N(af);
-    if (n == 0)
+    if (overflow_check_bit3(start, *(u8 *)(op1)))
+        SET_H(af);
+    if (overflow_check_bit7(start, *(u8 *)(op1)))
+        SET_C(af);
+    if (*(u8 *)(op1) == 0)
         SET_Z(af);
-    if (n > 0b1111)
-        SET_H(af);
-    if (n > 0b11111111)
-        SET_C(af);
-    af->hl.hi = n;
 }
 
-void add_8b(reg *af, u8 op1, u8 op2) {
-    u16 n = op1 + op2;
+//op1 u8, op2 u8
+void add_8b(reg *af, void *op1, void *op2) {
+    u8 start = *(u8 *)(op1);
+    *(u8 *)(op1) += *(u8 *)(op2);
 
     RESET_N(af);
-    if (n == 0)
+    if (overflow_check_bit3(start, *(u8 *)(op1)))
+        SET_H(af);
+    if (overflow_check_bit7(start, *(u8 *)(op1)))
+        SET_C(af);
+    if (*(u8 *)(op1) == 0)
         SET_Z(af);
-    if (n > 0b1111)
-        SET_H(af);
-    if (n > 0b11111111)
-        SET_C(af);
-    af->hl.hi = n;
 }
 
-void add_16b(reg *af, reg *hl, u16 op1, u16 op2) {
-    u32 n = op1 + op2;
+//op1 u16, op2 u16
+void add_16b(reg *af, void *op1, void *op2) {
+    u16 start = *(u16 *)(op1);
+    *(u16 *)(op1) += *(u16 *)(op2);
 
     RESET_N(af);
-    if (n > 0b111111111111)
+    if (overflow_check_bit11(start, *(u16 *)(op1)))
         SET_H(af);
-    if (n > 0b1111111111111111)
+    if (overflow_check_bit15(start, *(u16 *)(op1)))
         SET_C(af);
-    hl->r = n;
 }
 
-void add_signed(reg *af, reg *sp, u16 op1, i8 op2) {
-    u32 n = op1 + op2;
+//op1 u16, op2 i8
+void add_signed(reg *af, void *op1, void *op2) {
+    u16 start = *(u16 *)(op1);
+    *(u16 *)(op1) += *(i8 *)(op2);
 
+    if (overflow_check_bit3(start & 0xFF, *(u16 *)(op1) & 0xFF))
+        SET_H(af);
+    if (overflow_check_bit7(start & 0xFF, *(u16 *)(op1) & 0xFF))
+        SET_C(af);
     RESET_Z(af);
     RESET_N(af);
-    if (n > 0b1111)
-        SET_H(af);
-    if (n > 0b11111111)
-        SET_C(af);
-
-    sp->r = n;
 }
 
-void and(reg *af, u8 op1, u8 op2) {
-    af->hl.hi = op1 | op2;
+//op1 u8, op2 u8
+void and(reg *af, void *op1, void *op2) {
+    //TODO figure out if AND is saved or not
+    *(u8 *)op1 |= *(u8 *)op2;
 
     RESET_N(af);
     RESET_C(af);
     SET_H(af);
-    if (af->hl.hi == 0)
+    if (*(u8 *)op1 == 0)
         SET_Z(af);
 }
 
-void bit(reg *af, u8 op1, u8 op2) {
+//op1 u3, op2 u8
+void bit(reg *af, void *op1, void *op2) {
     RESET_N(af);
     SET_H(af);
-    if (((op2 >> op1) & 0x01) == 0)
+    if (((*(u8 *)op2 >> *(u8 *)op1) & 0x01) == 0)
         SET_Z(af);
 }
 
@@ -86,90 +115,50 @@ void ccf(reg *af) {
     af->hl.lo ^= 0b00010000;
 }
 
-void cp(reg *af, u8 op1, u8 op2) {
-    u8 n = op1 - op2;
+//op1 u8, op2 u8
+void cp(reg *af, void *op1, void *op2) {
+    u8 n = *(u8 *)op1 - *(u8 *)op2;
 
     SET_N(af);
     if (n == 0)
         SET_Z(af);
-    if (op2 > op1 || (n & 0b11110000) != (op1 & 0b11110000))
+    if (*(u8 *)op2 > *(u8 *)op1 || (n & 0b11110000) != (*(u8 *)op1 & 0b11110000))
         SET_H(af);
-    if (op2 > op1)
+    if (*(u8 *)op2 > *(u8 *)op1)
         SET_C(af);
 }
 
-void dec(registers *regs, operand_name name) {
-    u8 n = 0;
-    switch (name) {
-        case $A: n = --regs->AF.hl.hi; break;
-        case $B: n = --regs->BC.hl.hi; break;
-        case $C: n = --regs->BC.hl.lo; break;
-        case $D: n = --regs->DE.hl.hi; break;
-        case $E: n = --regs->DE.hl.lo; break;
-        case $H: n = --regs->HL.hl.hi; break;
-        case $L: n = --regs->HL.hl.lo; break;
-        case $BC: --regs->BC.r; return;
-        case $DE: --regs->DE.r; return;
-        case $HL: --regs->HL.r; return;
-        case $SP: --regs->HL.r; return;
-        case $HLBP: /*TODO get byte and dec*/ break;
-        default: break;
-    }
-    if (((n + 1) & 0b11110000) == (n & 0b11110000))
-        SET_H((&regs->AF));
-    if (n == 0)
-        SET_Z((&regs->AF));
-    SET_N((&regs->AF));
+//op1 u8/u16
+void dec(reg *af, void *op1, _Bool is_8bit) {
+    --*(u16 *)op1;
+
+    if (!is_8bit)
+        return;
+
+    if (((*(u8 *)op1 + 1) & 0b11110000) == (*(u8 *)op1 & 0b11110000))
+        SET_H(af);
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    SET_N(af);
 }
 
-void inc(registers *regs, operand_name name) {
-    u8 n = 0;
-    switch (name) {
-        case $A: n = ++regs->AF.hl.hi; break;
-        case $B: n = ++regs->BC.hl.hi; break;
-        case $C: n = ++regs->BC.hl.lo; break;
-        case $D: n = ++regs->DE.hl.hi; break;
-        case $E: n = ++regs->DE.hl.lo; break;
-        case $H: n = ++regs->HL.hl.hi; break;
-        case $L: n = ++regs->HL.hl.lo; break;
-        case $BC: ++regs->BC.r; return;
-        case $DE: ++regs->DE.r; return;
-        case $HL: ++regs->HL.r; return;
-        case $SP: ++regs->HL.r; return;
-        case $HLBP: /*TODO get byte and inc*/ break;
-        default: break;
-    }
-    if (((n - 1) & 0b11110000) == (n & 0b11110000))
-        SET_H((&regs->AF));
-    if (n == 0)
-        SET_Z((&regs->AF));
-    SET_N((&regs->AF));
+//op1 u8/u16
+void inc(reg *af, void *op1, _Bool is_8bit) {
+    ++*(u16 *)op1;
+
+    if (!is_8bit)
+        return;
+
+    if (((*(u8 *)op1 - 1) & 0b11110000) == (*(u8 *)op1 & 0b11110000))
+        SET_H(af);
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    SET_N(af);
 }
 
-void ld(registers *regs, operand_name name, u16 op1, u16 op2) {
-    (void)op1;
-    switch (name) {
-        case $A: regs->AF.hl.hi = op2; break;
-        case $B: regs->BC.hl.hi = op2; break;
-        case $C: regs->BC.hl.lo = op2; break;
-        case $D: regs->DE.hl.hi = op2; break;
-        case $E: regs->DE.hl.lo = op2; break;
-        case $H: regs->HL.hl.hi = op2; break;
-        case $L: regs->HL.hl.lo = op2; break;
-        case $BC: regs->BC.r = op2; break;
-        case $DE: regs->DE.r = op2; break;
-        case $HL: regs->HL.r = op2; break;
-        case $SP: regs->HL.r = op2; break;
-        case $CBP: /*TODO get byte set it*/ break;
-        case $BCBP: /*TODO get byte set it*/ break;
-        case $DEBP: /*TODO get byte set it*/ break;
-        case $HLBP: /*TODO get byte set it*/ break;
-        case $a8: /*TODO get byte set it*/ break;
-        case $a16: /*TODO get byte set it*/ break;
-        case $HLD: /*TODO get byte set it*/ break;
-        case $HLI: /*TODO get byte set it*/ break;
-        default: break;
-    }
+//op1 u8/16, op2 u8/16
+void ld(void *op1, void *op2) {
+    *(u16 *)op1 = *(u16 *)op2;
 }
 
 void ld_signed(registers *regs, i8 n) {
@@ -184,7 +173,8 @@ void ld_signed(registers *regs, i8 n) {
         SET_C((&regs->AF));
 }
 
-void ld_sp(u16 op1, u16 op2) {
+//op1 u16, op2 u16
+void ld_sp(void *op1, void *op2) {
     (void)op1;
     (void)op2;
     //TODO
@@ -192,8 +182,9 @@ void ld_sp(u16 op1, u16 op2) {
     //*(op1 + 1) = op2 >> 8;
 }
 
-void or(reg *af, u8 op2) {
-    af->hl.hi |= op2;
+//op2 u8
+void or(reg *af, void *op2) {
+    af->hl.hi |= *(u8 *)op2;
 
     if (af->hl.hi == 0)
         RESET_Z(af);
@@ -202,47 +193,28 @@ void or(reg *af, u8 op2) {
     RESET_C(af);
 }
 
-void res(registers *regs, u8 bit, operand_name name) {
-    switch (name) {
-        case $A: regs->AF.hl.hi ^= (0x1 << bit); break;
-        case $B: regs->BC.hl.hi ^= (0x1 << bit); break;
-        case $C: regs->BC.hl.lo ^= (0x1 << bit); break;
-        case $D: regs->DE.hl.hi ^= (0x1 << bit); break;
-        case $E: regs->DE.hl.lo ^= (0x1 << bit); break;
-        case $H: regs->HL.hl.hi ^= (0x1 << bit); break;
-        case $L: regs->HL.hl.lo ^= (0x1 << bit); break;
-        // case $HLBP: TODO
-        default: break;
-    }
+//op1 u8, op2 u8
+static inline void res(void* op1, void *op2) {
+    *(u8 *)op2 ^= (0x1 << *(u8 *)op1);
 }
 
-void rl(registers *regs, operand_name name) {
-    u8 *p;
-    switch (name) {
-        case $A: p = &regs->AF.hl.hi; break;
-        case $B: p = &regs->BC.hl.hi; break;
-        case $C: p = &regs->BC.hl.lo; break;
-        case $D: p = &regs->DE.hl.hi; break;
-        case $E: p = &regs->DE.hl.lo; break;
-        case $H: p = &regs->HL.hl.hi; break;
-        case $L: p = &regs->HL.hl.lo; break;
-        // case $HLBP: TODO
-        default: break;
-    }
+//op1 u8
+void rl(reg *af, void *op1) {
+    u8 *p = (u8 *)op1;
 
     _Bool carry_check = 0;
     if ((*p) & 0b10000000)
         carry_check = 1;
     (*p) <<= 1;
-    (*p) |= CHECK_C((&regs->AF));
+    (*p) |= CHECK_C(af);
 
-    RESET_C((&regs->AF));
+    RESET_C(af);
     if (carry_check)
-        SET_C((&regs->AF));
+        SET_C(af);
     if (*p == 0)
-        SET_Z((&regs->AF));
-    RESET_N((&regs->AF));
-    RESET_H((&regs->AF));
+        SET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
 }
 
 void rla(reg *af) {
@@ -260,30 +232,19 @@ void rla(reg *af) {
         SET_C(af);
 }
 
-void rlc(registers *regs, operand_name name) {
-    u8 *p;
-    switch (name) {
-        case $A: p = &regs->AF.hl.hi; break;
-        case $B: p = &regs->BC.hl.hi; break;
-        case $C: p = &regs->BC.hl.lo; break;
-        case $D: p = &regs->DE.hl.hi; break;
-        case $E: p = &regs->DE.hl.lo; break;
-        case $H: p = &regs->HL.hl.hi; break;
-        case $L: p = &regs->HL.hl.lo; break;
-        // case $HLBP: TODO
-        default: break;
-    }
+void rlc(reg *af, void *op1) {
+    u8 *p = (u8 *)op1;
 
-    RESET_C((&regs->AF));
+    RESET_C(af);
     if ((*p) & 0b10000000)
-        SET_C((&regs->AF));
+        SET_C(af);
     (*p) <<= 1;
-    if (CHECK_C((&regs->AF)))
+    if (CHECK_C(af))
         (*p) |= 1;
     if (*p == 0)
-        SET_Z((&regs->AF));
-    RESET_N((&regs->AF));
-    RESET_H((&regs->AF));
+        SET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
 }
 
 void rlca(reg *af) {
@@ -294,6 +255,20 @@ void rlca(reg *af) {
     if (CHECK_C(af))
         af->hl.hi |= 1;
     RESET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
+}
+
+void rr(reg *af, void *op1) {
+    _Bool c_is_set = CHECK_C(af);
+    RESET_C(af);
+    if (*(u8 *)op1 & 0b1)
+        SET_C(af);
+    *(u8 *)op1 >>= 1;
+    if (c_is_set)
+        *(u8 *)op1 |= 0b10000000;
+    if (*(u8 *)op1 == 0)
+        RESET_Z(af);
     RESET_N(af);
     RESET_H(af);
 }
@@ -311,30 +286,19 @@ void rra(reg *af) {
     RESET_H(af);
 }
 
-void rrc(registers *regs, operand_name name) {
-    u8 *p;
-    switch (name) {
-        case $A: p = &regs->AF.hl.hi; break;
-        case $B: p = &regs->BC.hl.hi; break;
-        case $C: p = &regs->BC.hl.lo; break;
-        case $D: p = &regs->DE.hl.hi; break;
-        case $E: p = &regs->DE.hl.lo; break;
-        case $H: p = &regs->HL.hl.hi; break;
-        case $L: p = &regs->HL.hl.lo; break;
-        // case $HLBP: TODO
-        default: break;
-    }
+void rrc(reg *af, void *op1) {
+    u8 *p = (u8 *)op1;
 
-    RESET_C((&regs->AF));
+    RESET_C(af);
     if ((*p) & 1)
-        SET_C((&regs->AF));
+        SET_C(af);
     (*p) >>= 1;
-    if (CHECK_C((&regs->AF)))
+    if (CHECK_C(af))
         (*p) |= 0b10000000;
     if (*p == 0)
-        SET_Z((&regs->AF));
-    RESET_N((&regs->AF));
-    RESET_H((&regs->AF));
+        SET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
 }
 
 void rrca(reg *af) {
@@ -349,32 +313,26 @@ void rrca(reg *af) {
     RESET_H(af);
 }
 
-u16 get_8b_register(operand_name name, registers *regs) {
+void *get_register(operand_name name, registers *regs) {
     switch (name) {
-        case $A: return regs->AF.hl.hi;
-        case $B: return regs->BC.hl.hi;
-        case $C: return regs->BC.hl.lo;
-        case $D: return regs->DE.hl.hi;
-        case $E: return regs->DE.hl.lo;
-        case $H: return regs->HL.hl.hi;
-        case $L: return regs->HL.hl.lo;
-        default: return 0;
-    }
-}
-
-u16 get_16b_register(operand_name name, registers *regs) {
-    switch (name) {
-        case $BC: return regs->BC.r;
-        case $DE: return regs->DE.r;
-        case $HL: return regs->HL.r;
-        case $SP: return regs->SP.r;
+        case $A: return &regs->AF.hl.hi;
+        case $B: return &regs->BC.hl.hi;
+        case $C: return &regs->BC.hl.lo;
+        case $D: return &regs->DE.hl.hi;
+        case $E: return &regs->DE.hl.lo;
+        case $H: return &regs->HL.hl.hi;
+        case $L: return &regs->HL.hl.lo;
+        case $BC: return &regs->BC.r;
+        case $DE: return &regs->DE.r;
+        case $HL: return &regs->HL.r;
+        case $SP: return &regs->SP.r;
         default: return 0;
     }
 }
 
 //get the byte pointed to by the register
 //TODO
-u8 get_byte(operand_name name, registers *regs) {
+void *get_byte(operand_name name, registers *regs) {
     (void)regs;
     switch (name) {
         // case $CBP:
@@ -390,13 +348,11 @@ u8 get_byte(operand_name name, registers *regs) {
     }
 }
 
-u16 get_operand(operand_name name, registers *regs) {
+void *get_operand(operand_name name, registers *regs) {
     if (name == NUL)
         return 0;
-    if (name <= $L)
-        return get_8b_register(name, regs);
     if (name <= $HL)
-        return get_16b_register(name, regs);
+        return get_register(name, regs);
     if (name <= $HLBP)
         return get_byte(name, regs);
     else
@@ -405,18 +361,19 @@ u16 get_operand(operand_name name, registers *regs) {
 
 u8 execute_operation(registers *regs, operation op) {
     u8 cycles = op.cycles;
-    u16 op1 = get_operand(op.operand1, regs);
-    u16 op2 = get_operand(op.operand2, regs);
+    void *op1 = get_operand(op.operand1, regs);
+    void *op2 = get_operand(op.operand2, regs);
 
+//A = Accumalator
     switch (op.name) {
         case ADC: adc(&regs->AF, op1, op2); break;
         case ADD:
             if (op.operand1 == $A)
                 add_8b(&regs->AF, op1, op2);
             else if (op.operand1 == $HL)
-                add_16b(&regs->AF, &regs->HL, op1, op2);
+                add_16b(&regs->AF, op1, op2);
             else
-                add_signed(&regs->AF, &regs->SP, op1, op2);
+                add_signed(&regs->AF, op1, op2);
             break;
         case AND: and(&regs->AF, op1, op2); break;
         case BIT: bit(&regs->AF, op1, op2); break;
@@ -425,20 +382,22 @@ u8 execute_operation(registers *regs, operation op) {
         case CP: cp(&regs->AF, op1, op2); break;
         case CPL: /*TODO*/ break;
         case DAA: /*TODO*/ break;
-        case DEC: dec(regs, op.operand1); break;
+        case DEC: dec(&regs->AF, op1, op.operand1 <= $L); break;
         case DI: /*TODO*/ break;
         case EI: /*TODO*/ break;
         case HALT: /*TODO*/ break;
-        case INC: inc(regs, op.operand1); break;
+        case INC: inc(&regs->AF, op1, op.operand1 <= $L); break;
         case JP: /*TODO*/ break;
         case JR: /*TODO*/ break;
         case LD: 
             if (op.operand2 != $SP)
-                ld(regs, op.operand1, op1, op2);
+                ld(op1, op2);
             else if (op.operand1 == $HL)
-                ld_signed(regs, 1/*get_byte()*/);
+                ld_signed(regs, 1/*TODO get_byte()*/);
             else
                 ld_sp(op1, op2);
+            hl_decrement_increment(op.operand1, op1);
+            hl_decrement_increment(op.operand2, op2);
             break;
         case LDH:
             // if (op.operand1 == $A)
@@ -451,16 +410,16 @@ u8 execute_operation(registers *regs, operation op) {
         case OR: or(&regs->AF, op2); break;
         case POP: /*TODO*/ break;
         case PUSH: /*TODO*/ break;
-        case RES: res(regs, op1, op.operand2); break;
+        case RES: res(op1, op2); break;
         case RET: /*TODO*/ break;
         case RETI: /*TODO*/ break;
-        case RL: rl(regs, op.operand1); break;
+        case RL: rl(&regs->AF, op1); break;
         case RLA: rla(&regs->AF); break;
-        case RLC: rlc(regs, op.operand1); break;
+        case RLC: rlc(&regs->AF, op1); break;
         case RLCA: rlca(&regs->AF); break;
         case RR: /*TODO*/ break;
         case RRA: rra(&regs->AF); break;
-        case RRC: rrc(regs, op.operand1); break;
+        case RRC: rrc(&regs->AF, op1); break;
         case RRCA: rrca(&regs->AF); break;
         case RST: /*TODO*/ break;
         case SBC: /*TODO NEXT*/ break;
@@ -479,7 +438,7 @@ void cpu(void) {
     create_op_table(operations);
 
     while (1) {
-        operation op = operations[read_memory()];
+        operation op = operations[*(u8 *)read_memory()];
         interrupt_counter -= execute_operation(&regs, op);
 
         #ifdef DEBUGGER

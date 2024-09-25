@@ -61,7 +61,6 @@ typedef enum {
 // BP ([r]) meaning byte pointed to by the register
 
 #define FOREACH_OPERAND(OPERAND) \
-    OPERAND(NUL) \
     OPERAND($A) \
     OPERAND($B) \
     OPERAND($C) \
@@ -103,7 +102,8 @@ typedef enum {
     OPERAND($4) \
     OPERAND($5) \
     OPERAND($6) \
-    OPERAND($7)
+    OPERAND($7) \
+    OPERAND(NUL) \
 
 typedef enum {
     FOREACH_OPERAND(GENERATE_ENUM)
