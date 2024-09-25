@@ -436,7 +436,7 @@ u8 execute_operation(registers *regs, operation op) {
         case RRCA: rrca(&regs->AF); break;
         case RST: /*TODO*/ break;
         case SBC: sbc(&regs->AF, op1, op2); break;
-        case SCF: SET_C((&regs->AF)); break;
+        case SCF: SET_C((&regs->AF)); RESET_N((&regs->AF)); RESET_H((&regs->AF)) break;
         // case example: /*TODO*/ break;
         default: break;
     }
