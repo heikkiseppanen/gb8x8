@@ -58,7 +58,7 @@ typedef enum {
 } operation_name;
 
 // operands $CBP, $BCBP, $DEBP, $HLBP
-// BP ([r]) meaning byte pointed to by the register
+// BP ([register]) meaning byte pointed to by the register
 
 #define FOREACH_OPERAND(OPERAND) \
     OPERAND($A) \

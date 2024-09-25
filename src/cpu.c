@@ -206,7 +206,7 @@ void rl(reg *af, void *op1) {
     if ((*p) & 0b10000000)
         carry_check = 1;
     (*p) <<= 1;
-    (*p) |= CHECK_C(af);
+    (*p) |= (CHECK_C(af));
 
     RESET_C(af);
     if (carry_check)
@@ -222,7 +222,7 @@ void rla(reg *af) {
     if (af->hl.hi & 0b10000000)
         carry_check = 1;
     af->hl.hi <<= 1;
-    af->hl.hi |= CHECK_C(af);
+    af->hl.hi |= (CHECK_C(af));
 
     RESET_C(af);
     RESET_N(af);
@@ -311,6 +311,19 @@ void rrca(reg *af) {
     RESET_Z(af);
     RESET_N(af);
     RESET_H(af);
+}
+
+void sbc(reg *af, void *op1, void *op2) {
+    u8 start = *(u8 *)op1;
+    *(u8 *)op1 -= *(u8 *)op2 - (CHECK_C(af));
+
+    SET_N(af);
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    if ((start & 0b11110000) != (*(u8 *)op1 & 0b11110000))
+        SET_H(af);
+    if (*(u8 *)op2 + (CHECK_C(af)) > *(u8 *)op1)
+        SET_C(af);
 }
 
 void *get_register(operand_name name, registers *regs) {
@@ -422,7 +435,7 @@ u8 execute_operation(registers *regs, operation op) {
         case RRC: rrc(&regs->AF, op1); break;
         case RRCA: rrca(&regs->AF); break;
         case RST: /*TODO*/ break;
-        case SBC: /*TODO NEXT*/ break;
+        case SBC: sbc(&regs->AF, op1, op2); break;
         case SCF: SET_C((&regs->AF)); break;
         // case example: /*TODO*/ break;
         default: break;
