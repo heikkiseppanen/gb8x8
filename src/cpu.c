@@ -313,6 +313,7 @@ void rrca(reg *af) {
     RESET_H(af);
 }
 
+//op1 u8, op2 u8
 void sbc(reg *af, void *op1, void *op2) {
     u8 start = *(u8 *)op1;
     *(u8 *)op1 -= *(u8 *)op2 - (CHECK_C(af));
@@ -329,6 +330,18 @@ void sbc(reg *af, void *op1, void *op2) {
 //op1 u8, op2 u8
 static inline void set(void *op1, void *op2) {
     *(u8 *)op2 |= (1 << *(u8 *)op1);
+}
+
+//op1 u8
+void sla(reg *af, void *op1) {
+    RESET_C(af);
+    if (*(u8 *)op1 & 0b10000000)
+        SET_C(af);
+    *(u8 *)op1 <<= 1;
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    SET_N(af);
+    SET_H(af);
 }
 
 void *get_register(operand_name name, registers *regs) {
@@ -443,6 +456,7 @@ u8 execute_operation(registers *regs, operation op) {
         case SBC: sbc(&regs->AF, op1, op2); break;
         case SCF: SET_C((&regs->AF)); RESET_N((&regs->AF)); RESET_H((&regs->AF)); break;
         case SET: set(op1, op2); break;
+        case SLA: sla(&regs->AF, op1); break;
         // case example: /*TODO*/ break;
         default: break;
     }
