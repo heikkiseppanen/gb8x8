@@ -326,6 +326,11 @@ void sbc(reg *af, void *op1, void *op2) {
         SET_C(af);
 }
 
+//op1 u8, op2 u8
+static inline void set(void *op1, void *op2) {
+    *(u8 *)op2 |= (1 << *(u8 *)op1);
+}
+
 void *get_register(operand_name name, registers *regs) {
     switch (name) {
         case $A: return &regs->AF.hl.hi;
@@ -436,7 +441,8 @@ u8 execute_operation(registers *regs, operation op) {
         case RRCA: rrca(&regs->AF); break;
         case RST: /*TODO*/ break;
         case SBC: sbc(&regs->AF, op1, op2); break;
-        case SCF: SET_C((&regs->AF)); RESET_N((&regs->AF)); RESET_H((&regs->AF)) break;
+        case SCF: SET_C((&regs->AF)); RESET_N((&regs->AF)); RESET_H((&regs->AF)); break;
+        case SET: set(op1, op2); break;
         // case example: /*TODO*/ break;
         default: break;
     }
