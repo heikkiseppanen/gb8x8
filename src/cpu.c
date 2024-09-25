@@ -323,7 +323,7 @@ void sbc(reg *af, void *op1, void *op2) {
         SET_Z(af);
     if ((start & 0b11110000) != (*(u8 *)op1 & 0b11110000))
         SET_H(af);
-    if (*(u8 *)op2 + (CHECK_C(af)) > *(u8 *)op1)
+    if (*(u8 *)op2 + (CHECK_C(af)) > start)
         SET_C(af);
 }
 
@@ -370,6 +370,20 @@ void srl(reg *af, void *op1) {
         SET_Z(af);
     RESET_N(af);
     RESET_H(af);
+}
+
+//op1 u8, op2 u8
+void sub(reg *af, void *op1, void *op2) {
+    u8 start = *(u8 *)op1;
+    *(u8 *)op1 -= *(u8 *)op2;
+
+    SET_N(af);
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    if ((start & 0b11110000) != (*(u8 *)op1 & 0b11110000))
+        SET_H(af);
+    if (*(u8 *)op2 > start)
+        SET_C(af);
 }
 
 void *get_register(operand_name name, registers *regs) {
@@ -487,6 +501,8 @@ u8 execute_operation(registers *regs, operation op) {
         case SLA: sla(&regs->AF, op1); break;
         case SRA: sra(&regs->AF, op1); break;
         case SRL: srl(&regs->AF, op1); break;
+        case STOP: /*TODO*/ break;
+        case SUB: sub(&regs->AF, op1, op2); break;
         // case example: /*TODO*/ break;
         default: break;
     }
