@@ -360,6 +360,18 @@ void sra(reg *af, void *op1) {
     RESET_H(af);
 }
 
+//op1 u8
+void srl(reg *af, void *op1) {
+    RESET_C(af);
+    if (*(u8 *)op1 & 1)
+        SET_C(af);
+    *(u8 *)op1 >>= 1;
+    if (*(u8 *)op1 == 0)
+        SET_Z(af);
+    RESET_N(af);
+    RESET_H(af);
+}
+
 void *get_register(operand_name name, registers *regs) {
     switch (name) {
         case $A: return &regs->AF.hl.hi;
@@ -474,6 +486,7 @@ u8 execute_operation(registers *regs, operation op) {
         case SET: set(op1, op2); break;
         case SLA: sla(&regs->AF, op1); break;
         case SRA: sra(&regs->AF, op1); break;
+        case SRL: srl(&regs->AF, op1); break;
         // case example: /*TODO*/ break;
         default: break;
     }
