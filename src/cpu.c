@@ -523,7 +523,7 @@ u8 execute_operation(registers *regs, operation op) {
         case RLA: rla(&regs->AF); break;
         case RLC: rlc(&regs->AF, op1); break;
         case RLCA: rlca(&regs->AF); break;
-        case RR: /*TODO*/ break;
+        case RR: rr(&regs->AF, op1); break;
         case RRA: rra(&regs->AF); break;
         case RRC: rrc(&regs->AF, op1); break;
         case RRCA: rrca(&regs->AF); break;
