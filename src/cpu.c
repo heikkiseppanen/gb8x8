@@ -136,10 +136,11 @@ void cpl(reg *af) {
 
 //op1 u8/u16
 void dec(reg *af, void *op1, _Bool is_8bit) {
-    --*(u16 *)op1;
-
-    if (!is_8bit)
+    if (!is_8bit) {
+        --*(u16 *)op1;
         return;
+    }
+    --*(u8 *)op1;
 
     if (((*(u8 *)op1 + 1) & 0b11110000) == (*(u8 *)op1 & 0b11110000))
         SET_H(af);
@@ -150,10 +151,11 @@ void dec(reg *af, void *op1, _Bool is_8bit) {
 
 //op1 u8/u16
 void inc(reg *af, void *op1, _Bool is_8bit) {
-    ++*(u16 *)op1;
-
-    if (!is_8bit)
+    if (!is_8bit) {
+        ++*(u16 *)op1;
         return;
+    }
+    ++*(u8 *)op1;
 
     if (((*(u8 *)op1 - 1) & 0b11110000) == (*(u8 *)op1 & 0b11110000))
         SET_H(af);
@@ -162,8 +164,13 @@ void inc(reg *af, void *op1, _Bool is_8bit) {
     SET_N(af);
 }
 
-//op1 u8/16, op2 u8/16
-void ld(void *op1, void *op2) {
+//op1 u8, op2 u8
+void ld_8bit(void *op1, void *op2) {
+    *(u8 *)op1 = *(u8 *)op2;
+}
+
+//op1 u16, op2 u16
+void ld_16bit(void *op1, void *op2) {
     *(u16 *)op1 = *(u16 *)op2;
 }
 
@@ -486,12 +493,15 @@ u8 execute_operation(registers *regs, operation op) {
         case JP: /*TODO*/ break;
         case JR: /*TODO*/ break;
         case LD: 
-            if (op.operand2 != $SP)
-                ld(op1, op2);
+            if (op.operand2 == $SP) {
+                ld_sp(op1, op2);
+            }
             else if (op.operand1 == $HL)
                 ld_signed(regs, 1/*TODO get_byte()*/);
+            else if (op.operand1 <= $L)
+                ld_8bit(op1, op2);
             else
-                ld_sp(op1, op2);
+                ld_16bit(op1, op2);
             hl_decrement_increment(op.operand1, op1);
             hl_decrement_increment(op.operand2, op2);
             break;
