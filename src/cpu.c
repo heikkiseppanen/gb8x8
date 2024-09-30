@@ -603,7 +603,7 @@ u8 execute_operation(registers *regs, operation op) {
             if (op.operand2 == $SP) {
                 ld_sp(op1, op2);
             } else if (op.operand1 == $HL)
-                ld_signed(regs, 1/*TODO get_byte()*/);
+                ld_signed(regs, *(i8 *)read_memory(++regs->PC.r));
             else if (op.operand1 <= $L)
                 ld_8bit(op1, op2);
             else
