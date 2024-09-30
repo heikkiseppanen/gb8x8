@@ -250,11 +250,8 @@ void ld_signed(registers *regs, i8 n) {
 
 //op1 u16, op2 u16
 void ld_sp(void *op1, void *op2) {
-    (void)op1;
-    (void)op2;
-    //TODO
-    //*op1 = op2 & 0xFF;
-    //*(op1 + 1) = op2 >> 8;
+    *(u16 *)op1 = *(u16 *)op2 & 0xFF;
+    *((u16 *)op1 + 1) = *(u16 *)op2 >> 8;
 }
 
 //op2 u8
@@ -526,8 +523,6 @@ void *get_register(operand_name name, registers *regs) {
     }
 }
 
-//get the byte pointed to by the register
-//TODO
 void *get_byte(operand_name name, registers *regs) {
     switch (name) {
         case $CBP:
@@ -600,10 +595,10 @@ u8 execute_operation(registers *regs, operation op) {
         case JP: cycles += jp(&regs->PC, op1, op2); break;
         case JR: cycles += jr(&regs->PC, op1, op2); break;
         case LD: 
-            if (op.operand2 == $SP) {
-                ld_sp(op1, op2);
-            } else if (op.operand1 == $HL)
+            if (op.operand1 == $HL)
                 ld_signed(regs, *(i8 *)read_memory(++regs->PC.r));
+            else if (op.operand2 == $SP)
+                ld_sp(op1, op2);
             else if (op.operand1 <= $L)
                 ld_8bit(op1, op2);
             else
