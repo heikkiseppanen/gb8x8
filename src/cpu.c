@@ -176,6 +176,19 @@ void inc(reg *af, void *op1, _Bool is_8bit) {
     SET_N(af);
 }
 
+//op1 cc/u16, op2 nul/u16
+u8 jp(reg *pc, void *op1, void *op2) {
+    if (op2 == NULL)
+        pc->r = *(u16 *)op1;
+    else {
+        if (op1 == (void *)1)
+            return 0;
+        pc->r = *(u16 *)op2;
+        return 1;
+    }
+    return 0;
+}
+
 //op1 u8, op2 u8
 void ld_8bit(void *op1, void *op2) {
     *(u8 *)op1 = *(u8 *)op2;
@@ -478,16 +491,15 @@ void *get_register(operand_name name, registers *regs) {
 //get the byte pointed to by the register
 //TODO
 void *get_byte(operand_name name, registers *regs) {
-    (void)regs;
     switch (name) {
-        // case $CBP:
-        //     return read_memory_from_address(regs->BC.hl.lo);
-        // case $BCBP:
-        //     return read_memory_from_address(regs->BC.r);
-        // case $DEBP:
-        //     return read_memory_from_address(regs->DE.r);
-        // case $HLBP:
-        //     return read_memory_from_address(regs->HL.r);
+        case $CBP:
+            return read_stack(regs->BC.hl.lo);
+        case $BCBP:
+            return read_stack(regs->BC.r);
+        case $DEBP:
+            return read_stack(regs->DE.r);
+        case $HLBP:
+            return read_stack(regs->HL.r);
         default:
             return 0;
     }
@@ -495,10 +507,10 @@ void *get_byte(operand_name name, registers *regs) {
 
 void *check_cond(operand_name name, registers *regs) {
     switch (name) {
-        case $NZ: return 1 + !CHECK_Z((&regs->AF));
-        case $Z: return 1 + CHECK_Z((&regs->AF));
-        case $NC: return 1 + !CHECK_C((&regs->AF));
-        case $SC: return 1 + CHECK_C((&regs->AF));
+        case $NZ: return !CHECK_Z((&regs->AF)) ? (void *)1 : (void *)2;
+        case $Z: return CHECK_Z((&regs->AF)) ? (void *)1 : (void *)2;
+        case $NC: return !CHECK_C((&regs->AF)) ? (void *)1 : (void *)2;
+        case $SC: return CHECK_C((&regs->AF)) ? (void *)1 : (void *)2;
         default: return 0;
     }
 }
@@ -543,7 +555,7 @@ u8 execute_operation(registers *regs, operation op) {
         case EI: /*TODO*/ break;
         case HALT: /*TODO*/ break;
         case INC: inc(&regs->AF, op1, op.operand1 <= $L); break;
-        case JP: /*TODO*/ break;
+        case JP: cycles += jp(&regs->PC, op1, op2); break;
         case JR: /*TODO*/ break;
         case LD: 
             if (op.operand2 == $SP) {
