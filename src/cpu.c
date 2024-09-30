@@ -7,6 +7,7 @@
 #endif
 
 u8 debugger(u8 *buffer, registers *regs, operation *ops);
+void push(reg *sp, void *op1);
 
 //TODO -->
 u8 code[200] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -126,12 +127,14 @@ u8 call(reg *sp, reg *pc, void *op1, void *op2) {
         ++pc->r;
         push(sp, pc);
         pc->r = *(u16 *)op1;
+        --pc->r; // Incremented back later
     } else {
         if (op1 == (void *)1)
             return 0;
         ++pc->r;
         push(sp, pc);
         pc->r = *(u16 *)op2;
+        --pc->r; // Incremented back later
         return 3;
     }
     return 0;
@@ -194,24 +197,30 @@ void inc(reg *af, void *op1, _Bool is_8bit) {
 
 //op1 cc/u16, op2 nul/u16
 u8 jp(reg *pc, void *op1, void *op2) {
-    if (op2 == NULL)
+    if (op2 == NULL) {
         pc->r = *(u16 *)op1;
+        --pc->r; // Incremented back later
+    }
     else {
         if (op1 == (void *)1)
             return 0;
         pc->r = *(u16 *)op2;
+        --pc->r; // Incremented back later
         return 1;
     }
     return 0;
 }
 
 u8 jr(reg *pc, void *op1, void *op2) {
-    if (op2 == NULL)
+    if (op2 == NULL) {
         pc->r += *(i8 *)op1;
+        --pc->r; // Incremented back later
+    }
     else {
         if (op1 == (void *)1)
             return 0;
         pc->r += *(i8 *)op2;
+        --pc->r; // Incremented back later
         return 1;
     }
     return 0;
@@ -288,6 +297,7 @@ u8 ret(reg *sp, reg *pc, void *op1) {
     if (op1 == (void *)1)
         return 0;
     pop(sp, &pc->r);
+    --pc->r; // Incremented back later
     if (op1 != NULL)
         return 3;
     return 0;
@@ -553,7 +563,7 @@ void *get_operand(operand_name name, registers *regs) {
     else if (name <= $SC)
         return check_cond(name, regs);
     else
-        return read_memory(regs->PC.r);
+        return read_memory(++regs->PC.r);
 }
 
 u8 execute_operation(registers *regs, operation op) {
@@ -639,12 +649,13 @@ u8 execute_operation(registers *regs, operation op) {
         case XOR: xor(&regs->AF, op1, op2); break;
         default: break;
     }
+    ++regs->PC.r;
     return cycles;
 }
 
 void cpu(void) {
     registers regs = {0};
-    u8 interrupt_counter = 100;
+    i8 interrupt_counter = 100;
     operation operations[512];
 
     regs.SP.r = 199;
@@ -654,6 +665,8 @@ void cpu(void) {
 
     while (1) {
         operation op = operations[*(u8 *)read_memory(regs.PC.r)];
+        if (op.name == CB)
+            op = operations[*(u8 *)read_memory(regs.PC.r++)];
         interrupt_counter -= execute_operation(&regs, op);
 
         #ifdef DEBUGGER
@@ -663,10 +676,10 @@ void cpu(void) {
         instruction_cycles--;
         #endif
 
-        if (interrupt_counter == 0) {
+        if (interrupt_counter <= 0) {
+            interrupt_counter += INTERRUPT_INTERVAL;
             _Bool interrupt = 0;
 
-            interrupt_counter += INTERRUPT_INTERVAL;
             //check interrupts
             if (interrupt)
                 break;
