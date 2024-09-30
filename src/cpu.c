@@ -559,10 +559,18 @@ u8 execute_operation(registers *regs, operation op) {
             hl_decrement_increment(op.operand2, op2);
             break;
         case LDH:
-            // if (op.operand1 == $A)
-            //     regs->AF.hl.hi = 0xFF00 + op2;
-            // else
-            //     memory[0xFF00 + op1] = regs->AF.hl.hi;
+            if (op.operand1 == $A) {
+                if (op.operand2 == $C)
+                    regs->AF.hl.hi = *(u8 *)read_stack(0xff00 + *(u8 *)op2);
+                else
+                    regs->AF.hl.hi = *(u8 *)read_stack(*(u16 *)op2);
+            }
+            else {
+                if (op.operand1 == $C)
+                    *(u8 *)read_stack(0xff00 + *(u8 *)op2) = regs->AF.hl.hi;
+                else
+                    *(u8 *)read_stack(*(u16 *)op2) = regs->AF.hl.hi;
+            }
             break;
         case NOP: break;
         case ILL: for(;;); break;
