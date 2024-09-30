@@ -569,7 +569,11 @@ void *get_operand(operand_name name, registers *regs) {
 u8 execute_operation(registers *regs, operation op) {
     u8 cycles = op.cycles;
     void *op1 = get_operand(op.operand1, regs);
+    if (op.operand1 == $a16 || op.operand1 == $n16)
+        ++regs->PC.r;
     void *op2 = get_operand(op.operand2, regs);
+    if (op.operand2 == $a16 || op.operand2 == $n16)
+        ++regs->PC.r;
 
     switch (op.name) {
         case ADC: adc(&regs->AF, op1, op2); break;
