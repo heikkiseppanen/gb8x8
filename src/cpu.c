@@ -121,6 +121,22 @@ void bit(reg *af, void *op1, void *op2) {
         SET_Z(af);
 }
 
+u8 call(reg *sp, reg *pc, void *op1, void *op2) {
+    if (op2 == NULL) {
+        ++pc->r;
+        push(sp, pc);
+        pc->r = *(u16 *)op1;
+    } else {
+        if (op1 == (void *)1)
+            return 0;
+        ++pc->r;
+        push(sp, pc);
+        pc->r = *(u16 *)op2;
+        return 3;
+    }
+    return 0;
+}
+
 void ccf(reg *af) {
     RESET_N(af);
     RESET_H(af);
@@ -557,7 +573,7 @@ u8 execute_operation(registers *regs, operation op) {
             break;
         case AND: and(&regs->AF, op1, op2); break;
         case BIT: bit(&regs->AF, op1, op2); break;
-        case CALL: /*TODO*/ break;
+        case CALL: call(&regs->SP, &regs->PC, op1, op2); break;
         case CCF: ccf(&regs->AF); break;
         case CP: cp(&regs->AF, op1, op2); break;
         case CPL: cpl(&regs->AF); break;
@@ -572,8 +588,7 @@ u8 execute_operation(registers *regs, operation op) {
         case LD: 
             if (op.operand2 == $SP) {
                 ld_sp(op1, op2);
-            }
-            else if (op.operand1 == $HL)
+            } else if (op.operand1 == $HL)
                 ld_signed(regs, 1/*TODO get_byte()*/);
             else if (op.operand1 <= $L)
                 ld_8bit(op1, op2);
@@ -588,8 +603,7 @@ u8 execute_operation(registers *regs, operation op) {
                     regs->AF.hl.hi = *(u8 *)read_stack(0xff00 + *(u8 *)op2);
                 else
                     regs->AF.hl.hi = *(u8 *)read_stack(*(u16 *)op2);
-            }
-            else {
+            } else {
                 if (op.operand1 == $C)
                     *(u8 *)read_stack(0xff00 + *(u8 *)op2) = regs->AF.hl.hi;
                 else
