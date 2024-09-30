@@ -189,6 +189,18 @@ u8 jp(reg *pc, void *op1, void *op2) {
     return 0;
 }
 
+u8 jr(reg *pc, void *op1, void *op2) {
+    if (op2 == NULL)
+        pc->r += *(i8 *)op1;
+    else {
+        if (op1 == (void *)1)
+            return 0;
+        pc->r += *(i8 *)op2;
+        return 1;
+    }
+    return 0;
+}
+
 //op1 u8, op2 u8
 void ld_8bit(void *op1, void *op2) {
     *(u8 *)op1 = *(u8 *)op2;
@@ -556,7 +568,7 @@ u8 execute_operation(registers *regs, operation op) {
         case HALT: /*TODO*/ break;
         case INC: inc(&regs->AF, op1, op.operand1 <= $L); break;
         case JP: cycles += jp(&regs->PC, op1, op2); break;
-        case JR: /*TODO*/ break;
+        case JR: cycles += jr(&regs->PC, op1, op2); break;
         case LD: 
             if (op.operand2 == $SP) {
                 ld_sp(op1, op2);
