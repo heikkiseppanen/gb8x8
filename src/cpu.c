@@ -16,8 +16,8 @@ void *read_memory(u16 pc) {
     return &code[pc];
 }
 
-u8 read_stack(u16 sp) {
-    return stack[sp];
+void *read_stack(u16 address) {
+    return &stack[address];
 }
 
 void set_stack(u16 sp, u8 val) {
@@ -222,9 +222,9 @@ void or(reg *af, void *op2) {
 void pop(reg *sp, void *op1) {
     reg *r16 = op1;
 
-    r16->hl.lo = read_stack(sp->r);
+    r16->hl.lo = *(u8 *)read_stack(sp->r);
     ++sp->r;
-    r16->hl.hi = read_stack(sp->r);
+    r16->hl.hi = *(u8 *)read_stack(sp->r);
     ++sp->r;
 }
 
@@ -241,6 +241,15 @@ void push(reg *sp, void *op1) {
 //op1 u8, op2 u8
 static inline void res(void* op1, void *op2) {
     *(u8 *)op2 ^= (0x1 << *(u8 *)op1);
+}
+
+u8 ret(reg *sp, reg *pc, void *op1) {
+    if (op1 == (void *)1)
+        return 0;
+    pop(sp, &pc->r);
+    if (op1 != NULL)
+        return 3;
+    return 0;
 }
 
 //op1 u8
@@ -484,13 +493,25 @@ void *get_byte(operand_name name, registers *regs) {
     }
 }
 
+void *check_cond(operand_name name, registers *regs) {
+    switch (name) {
+        case $NZ: return 1 + !CHECK_Z((&regs->AF));
+        case $Z: return 1 + CHECK_Z((&regs->AF));
+        case $NC: return 1 + !CHECK_C((&regs->AF));
+        case $SC: return 1 + CHECK_C((&regs->AF));
+        default: return 0;
+    }
+}
+
 void *get_operand(operand_name name, registers *regs) {
     if (name == NUL)
-        return 0;
-    if (name <= $HL)
+        return NULL;
+    else if (name <= $HL)
         return get_register(name, regs);
-    if (name <= $HLBP)
+    else if (name <= $HLBP)
         return get_byte(name, regs);
+    else if (name <= $SC)
+        return check_cond(name, regs);
     else
         return read_memory(regs->PC.r);
 }
@@ -549,7 +570,7 @@ u8 execute_operation(registers *regs, operation op) {
         case POP: pop(&regs->SP, op1); break;
         case PUSH: push(&regs->SP, op1); break;
         case RES: res(op1, op2); break;
-        case RET: /*TODO*/ break;
+        case RET: cycles += ret(&regs->SP, &regs->PC, op1); break;
         case RETI: /*TODO*/ break;
         case RL: rl(&regs->AF, op1); break;
         case RLA: rla(&regs->AF); break;

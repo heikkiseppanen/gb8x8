@@ -82,6 +82,7 @@ typedef enum {
     OPERAND($NZ) \
     OPERAND($Z) \
     OPERAND($NC) \
+    OPERAND($SC) /* SC to distinguish between c register and c flag cond */\
     OPERAND($a8) \
     OPERAND($e8) \
     OPERAND($n8) \

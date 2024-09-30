@@ -222,7 +222,7 @@ void create_op_table(operation *operations) {
         create_operation(PUSH, 1, 4, $DE, NUL),
         create_operation(SUB, 2, 2, $A, $n8),
         create_operation(RST, 1, 4, $$10, NUL),
-        create_operation(RET, 1, 2, $C, NUL),
+        create_operation(RET, 1, 2, $SC, NUL),
         create_operation(RETI, 1, 4, NUL, NUL),
         create_operation(JP, 3, 3, $C, $a16),
         create_operation(ILL, 1, 1, NUL, NUL),
