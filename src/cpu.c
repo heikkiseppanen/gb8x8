@@ -1,17 +1,29 @@
 #include "gb8x8.h"
 #include "cpu.h"
 
+//TODO remove later
 #ifndef DEBUGGER
 #define DEBUGGER
 #endif
 
 u8 debugger(u8 *buffer, registers *regs, operation *ops);
 
-u8 buffer[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+//TODO -->
+u8 code[200] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+u8 stack[200];
 
-void *read_memory() {
-    return buffer;
+void *read_memory(u16 pc) {
+    return &code[pc];
 }
+
+u8 read_stack(u16 sp) {
+    return stack[sp];
+}
+
+void set_stack(u16 sp, u8 val) {
+    stack[sp] = val;
+}
+// <-- TODO
 
 static inline _Bool overflow_check_bit3(u8 start, u8 res) {
     return (start & 0b11110000) == (res & 0b11110000);
@@ -204,6 +216,26 @@ void or(reg *af, void *op2) {
     RESET_N(af);
     RESET_H(af);
     RESET_C(af);
+}
+
+//op1 u16
+void pop(reg *sp, void *op1) {
+    reg *r16 = op1;
+
+    r16->hl.lo = read_stack(sp->r);
+    ++sp->r;
+    r16->hl.hi = read_stack(sp->r);
+    ++sp->r;
+}
+
+//op1 u16
+void push(reg *sp, void *op1) {
+    reg *r16 = op1;
+
+    --sp->r;
+    set_stack(sp->r, r16->hl.hi);
+    --sp->r;
+    set_stack(sp->r, r16->hl.lo);
 }
 
 //op1 u8, op2 u8
@@ -460,7 +492,7 @@ void *get_operand(operand_name name, registers *regs) {
     if (name <= $HLBP)
         return get_byte(name, regs);
     else
-        return read_memory();
+        return read_memory(regs->PC.r);
 }
 
 u8 execute_operation(registers *regs, operation op) {
@@ -514,8 +546,8 @@ u8 execute_operation(registers *regs, operation op) {
         case NOP: break;
         case ILL: for(;;); break;
         case OR: or(&regs->AF, op2); break;
-        case POP: /*TODO*/ break;
-        case PUSH: /*TODO*/ break;
+        case POP: pop(&regs->SP, op1); break;
+        case PUSH: push(&regs->SP, op1); break;
         case RES: res(op1, op2); break;
         case RET: /*TODO*/ break;
         case RETI: /*TODO*/ break;
@@ -548,16 +580,19 @@ void cpu(void) {
     u8 interrupt_counter = 100;
     operation operations[512];
 
+    regs.SP.r = 199;
+    regs.PC.r = 0;
+
     create_op_table(operations);
 
     while (1) {
-        operation op = operations[*(u8 *)read_memory()];
+        operation op = operations[*(u8 *)read_memory(regs.PC.r)];
         interrupt_counter -= execute_operation(&regs, op);
 
         #ifdef DEBUGGER
         u8 instruction_cycles = 0;
         if (!instruction_cycles)
-            instruction_cycles = debugger(buffer, &regs, operations);
+            instruction_cycles = debugger(code, &regs, operations);
         instruction_cycles--;
         #endif
 

@@ -3,8 +3,8 @@
 #include "operations.h"
 #include "unistd.h"
 
-static void display_instructions(uint8_t *buffer, operation *ops) {
-    uint8_t i = 0;
+static void display_instructions(u8 *code, operation *ops) {
+    u8 i = 0;
     static const char *OPERAND_NAMES[] = {
         FOREACH_OPERAND(GENERATE_STRING)
     };
@@ -14,7 +14,7 @@ static void display_instructions(uint8_t *buffer, operation *ops) {
     };
 
     while(i < 16) {
-        operation op = ops[*buffer];
+        operation op = ops[*code];
 
         if (op.operand2 != NUL)
             GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s\t%s, %s%s", i, GB_TERM_RED, OP_NAMES[op.name], OPERAND_NAMES[op.operand1], OPERAND_NAMES[op.operand2], GB_TERM_RESET);
@@ -24,7 +24,7 @@ static void display_instructions(uint8_t *buffer, operation *ops) {
             GB_FLOG(stdout, GB_TERM_BLUE, "0x%x\t%s%s%s", i, GB_TERM_RED, OP_NAMES[op.name], GB_TERM_RESET);
 
         for (int byte_count = op.bytes; byte_count; byte_count--)
-            buffer++;
+            code++;
         i++;
     }
 }
@@ -38,7 +38,7 @@ static void display_registers(registers *regs) {
     GB_FLOG(stdout, GB_TERM_CYAN, "PC\t %d", regs->PC.r);
 }
 
-uint8_t debugger(uint8_t *buffer, registers *regs, operation *ops) {
+u8 debugger(u8 *code, registers *regs, operation *ops) {
     char input[1];
 
     while (1) {
@@ -46,14 +46,14 @@ uint8_t debugger(uint8_t *buffer, registers *regs, operation *ops) {
         printf("input: %c\n", *input);
         switch (input[0]) {
             case 's':
-                return ops[*buffer].cycles;
+                return ops[*code].cycles;
                 break;
             case 'r':
                 display_registers(regs);
                 //print registers
                 break;
             case 'd':
-                display_instructions(buffer, ops);
+                display_instructions(code, ops);
                 //display instructions
                 break;
         }
